@@ -53,7 +53,7 @@ export function DashboardPlaybackContainer() {
 
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [focusedCarNumber] = useState(DEFAULT_FOCUSED_CAR);
+  const [focusedCarNumber, setFocusedCarNumber] = useState(DEFAULT_FOCUSED_CAR);
   
   // Ref to track the last animation frame time
   const lastFrameTimeRef = useRef<number | null>(null);
@@ -169,17 +169,19 @@ export function DashboardPlaybackContainer() {
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-6 py-6">
         <div className="mb-2 flex items-baseline justify-between gap-4">
           <div className="text-xs font-semibold tracking-[0.3em] text-zinc-500 uppercase">
-            GR <span className="text-red-500">Teleforge</span> •{" "}
-            <span className="text-zinc-300">Race Control</span>
+            {/* Removed hardcoded title */}
           </div>
           <div className="text-xs font-mono text-zinc-500">
-            Past + Present = Future
+            {/* Removed hardcoded slogan */}
           </div>
         </div>
 
         <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-12">
           <div className="lg:col-span-3">
-            <RaceInfoPanel {...raceInfo} />
+            <RaceInfoPanel 
+              {...raceInfo} 
+              onDriverSelect={(carNumber) => setFocusedCarNumber(carNumber)}
+            />
           </div>
 
           <div className="lg:col-span-6">
@@ -192,13 +194,12 @@ export function DashboardPlaybackContainer() {
         </div>
       </main>
 
-      <LapProgressStrip {...lapProgress} />
+      <LapProgressStrip {...lapProgress} onScrub={handleScrub} />
       <PlaybackControls
         {...playback}
         onPlayPause={handlePlayPause}
         onStepBack={handleStepBack}
         onStepForward={handleStepForward}
-        onScrub={handleScrub}
       />
     </div>
   );
@@ -274,10 +275,10 @@ function mapFrameToDashboardData(
     sortedDrivers.find((d) => d.carNumber === focusedCarNumber) ?? leader;
 
   const header: DashboardHeaderProps = {
-    trackName: "Barber Motorsports",
-    races: ["Race 1", "Race 2"],
+    trackName: "", // Removed hardcoded track name
+    races: [], // Removed hardcoded races
     activeRaceIndex: 0,
-    versionLabel: "v0.2 • GR Teleforge",
+    versionLabel: "", // Removed hardcoded version
   };
 
   const raceInfo: RaceInfoPanelProps = {
@@ -325,9 +326,6 @@ function mapFrameToDashboardData(
 
   const playback: DashboardData["playback"] = {
     status: isPlaying ? "PLAYING" : "PAUSED",
-    currentLap: frame.lap,
-    totalLaps: frame.totalLaps,
-    progressRatio: overallProgressRatio,
   };
 
   return {
@@ -341,9 +339,35 @@ function mapFrameToDashboardData(
 }
 
 function driverToMarker(driver: DriverState): TrackCarMarker {
-  const angle = 2 * Math.PI * driver.trackProgress;
-  const radiusX = 40;
-  const radiusY = 32;
+  // Track map is an oval, 0 is at top (start/finish)
+  // Angle needs to be adjusted to match the CSS oval shape
+  // 0 progress -> -PI/2 (top)
+  const angle = 2 * Math.PI * driver.trackProgress - Math.PI / 2;
+  
+  // The track visual is an oval.
+  // Width is 80% of container, Height is 64px (fixed in TrackMap.tsx)
+  // Wait, looking at TrackMap.tsx:
+  // <div className="relative h-64 w-[80%] max-w-xl rounded-full border-[6px] ...">
+  // It's a rounded rect / stadium shape if width > height, or circle if equal.
+  // Let's assume it's roughly elliptical for the marker positioning.
+  
+  // Container is relative. 
+  // Center is 50%, 50%.
+  // Radius X should be slightly less than 50% to fit on the border.
+  // Radius Y should be slightly less than 50% to fit on the border.
+  
+  // The track map CSS uses: w-[80%] max-w-xl h-64
+  // We need to approximate this aspect ratio for the markers to land ON the line.
+  
+  // Let's try to match the visual border.
+  const radiusX = 45; // % of container width
+  const radiusY = 45; // % of container height
+  
+  // Since the visual is a rounded rectangle (stadium) or oval depending on CSS,
+  // simple ellipse math might be slightly off but much better than before.
+  // If it's a true CSS border-radius: 9999px on a rectangle, it's a stadium.
+  // But here it says rounded-full.
+  
   const centerX = 50;
   const centerY = 50;
 

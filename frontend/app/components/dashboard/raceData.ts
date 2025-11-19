@@ -31,13 +31,119 @@ export type RaceFrame = {
 export type RaceTimeline = RaceFrame[];
 
 /**
+ * Small embedded sample from `.data/barber-motorsports-park/barber/R1_barber_lap_time.csv`.
+ * We only use this to estimate lap count and average lap time so that the
+ * dashboard playback roughly matches the real Barber race pacing without
+ * needing to load the full CSV at runtime.
+ */
+const BARBER_R1_LAP_TIME_SAMPLE_CSV = `
+expire_at,lap,meta_event,meta_session,meta_source,meta_time,original_vehicle_id,outing,timestamp,vehicle_id,vehicle_number
+,2,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T18:40:41.927Z,GR86-002-000,0,2025-09-06T18:40:41.775Z,GR86-002-000,0
+,3,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T18:42:28.189Z,GR86-002-000,0,2025-09-06T18:42:25.504Z,GR86-002-000,0
+,4,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T18:44:42.583Z,GR86-002-000,0,2025-09-06T18:44:41.000Z,GR86-002-000,0
+,5,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T18:46:44.358Z,GR86-002-000,0,2025-09-06T18:46:42.663Z,GR86-002-000,0
+,6,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T18:48:22.301Z,GR86-002-000,0,2025-09-06T18:48:21.403Z,GR86-002-000,0
+,7,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T18:50:01.292Z,GR86-002-000,0,2025-09-06T18:49:59.666Z,GR86-002-000,0
+,8,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T18:51:42.817Z,GR86-002-000,0,2025-09-06T18:51:38.082Z,GR86-002-000,0
+,9,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T18:53:48.034Z,GR86-002-000,0,2025-09-06T18:53:16.605Z,GR86-002-000,0
+,10,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T18:54:55.675Z,GR86-002-000,0,2025-09-06T18:54:55.377Z,GR86-002-000,0
+,11,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T18:56:36.361Z,GR86-002-000,0,2025-09-06T18:56:34.776Z,GR86-002-000,0
+,12,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T18:58:15.348Z,GR86-002-000,0,2025-09-06T18:58:13.956Z,GR86-002-000,0
+,13,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T18:59:52.822Z,GR86-002-000,0,2025-09-06T18:59:52.579Z,GR86-002-000,0
+,14,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T19:01:34.320Z,GR86-002-000,0,2025-09-06T19:01:31.118Z,GR86-002-000,0
+,15,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T19:03:09.911Z,GR86-002-000,0,2025-09-06T19:03:09.708Z,GR86-002-000,0
+,16,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T19:04:51.106Z,GR86-002-000,0,2025-09-06T19:04:47.997Z,GR86-002-000,0
+,17,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T19:06:27.256Z,GR86-002-000,0,2025-09-06T19:06:26.712Z,GR86-002-000,0
+,18,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T19:08:06.443Z,GR86-002-000,0,2025-09-06T19:08:05.383Z,GR86-002-000,0
+,19,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T19:09:46.584Z,GR86-002-000,0,2025-09-06T19:09:43.808Z,GR86-002-000,0
+,20,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T19:11:22.885Z,GR86-002-000,0,2025-09-06T19:11:22.282Z,GR86-002-000,0
+,21,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T19:13:04.812Z,GR86-002-000,0,2025-09-06T19:13:00.727Z,GR86-002-000,0
+,22,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T19:14:40.264Z,GR86-002-000,0,2025-09-06T19:14:39.072Z,GR86-002-000,0
+,23,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T19:16:18.563Z,GR86-002-000,0,2025-09-06T19:16:17.494Z,GR86-002-000,0
+,24,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T19:17:57.809Z,GR86-002-000,0,2025-09-06T19:17:56.073Z,GR86-002-000,0
+,25,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T19:19:35.363Z,GR86-002-000,0,2025-09-06T19:19:34.695Z,GR86-002-000,0
+,26,I_R06_2025-09-07,R1,kafka:gr-raw,2025-09-06T19:21:13.889Z,GR86-002-000,0,2025-09-06T19:21:13.466Z,GR86-002-000,0
+`.trim();
+
+type BarberLapSample = {
+  lap: number;
+  timestampMs: number;
+};
+
+/**
+ * Very small CSV helper: parse the embedded Barber lap-time sample and derive
+ * a reasonable lap count and average lap time (in seconds). If anything goes
+ * wrong, we fall back to a simple default so the UI still works.
+ */
+function getBarberLapStatsFromSample(): { totalLaps: number; avgLapTimeSeconds: number } {
+  try {
+    const lines = BARBER_R1_LAP_TIME_SAMPLE_CSV.split("\n");
+    if (lines.length <= 1) {
+      return { totalLaps: 5, avgLapTimeSeconds: 60 };
+    }
+
+    const header = lines[0].split(",");
+    const lapIdx = header.indexOf("lap");
+    const timestampIdx = header.indexOf("timestamp");
+
+    if (lapIdx === -1 || timestampIdx === -1) {
+      return { totalLaps: 5, avgLapTimeSeconds: 60 };
+    }
+
+    const rows: BarberLapSample[] = lines
+      .slice(1)
+      .map((line) => line.split(","))
+      .map((cols) => {
+        const lap = Number(cols[lapIdx]);
+        const ts = Date.parse(cols[timestampIdx]);
+        return {
+          lap,
+          timestampMs: Number.isFinite(ts) ? ts : NaN,
+        };
+      })
+      .filter((r) => Number.isFinite(r.lap) && Number.isFinite(r.timestampMs));
+
+    if (rows.length < 2) {
+      return { totalLaps: 5, avgLapTimeSeconds: 60 };
+    }
+
+    // Ensure sorted by lap just in case.
+    rows.sort((a, b) => a.lap - b.lap);
+
+    const deltas: number[] = [];
+    for (let i = 1; i < rows.length; i++) {
+      const dt = rows[i].timestampMs - rows[i - 1].timestampMs;
+      if (dt > 0) {
+        deltas.push(dt);
+      }
+    }
+
+    if (!deltas.length) {
+      return { totalLaps: rows.length, avgLapTimeSeconds: 60 };
+    }
+
+    const avgDeltaMs =
+      deltas.reduce((sum, v) => sum + v, 0) / deltas.length;
+
+    return {
+      totalLaps: rows[rows.length - 1].lap,
+      avgLapTimeSeconds: avgDeltaMs / 1000,
+    };
+  } catch {
+    // Safe fallback if sample parsing fails for any reason.
+    return { totalLaps: 5, avgLapTimeSeconds: 60 };
+  }
+}
+
+/**
  * Returns a deterministic mock race timeline you can replace with real API data later.
  * The shape is intentionally close to the UI props so you can map frames into the dashboard.
  */
 export function getMockRaceTimeline(): RaceTimeline {
-  const totalLaps = 5; // Reduced laps for denser data in same timeframe, or just to keep it focused
+  const barberStats = getBarberLapStatsFromSample();
+  const totalLaps = barberStats.totalLaps;
   const fps = 10; // Data points per second
-  const lapTimeSeconds = 60; // Approx lap time
+  const lapTimeSeconds = barberStats.avgLapTimeSeconds || 60; // Approx lap time derived from Barber data
   const totalDurationSeconds = totalLaps * lapTimeSeconds;
   const totalFrames = totalDurationSeconds * fps;
   const frameDurationMs = 1000 / fps;

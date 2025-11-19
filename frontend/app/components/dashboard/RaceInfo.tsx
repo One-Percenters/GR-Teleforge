@@ -12,6 +12,7 @@ export type RaceInfoPanelProps = {
   leader: string;
   gap: string;
   standings: Standing[];
+  onDriverSelect?: (carNumber: number) => void;
 };
 
 export function RaceInfoPanel({
@@ -21,6 +22,7 @@ export function RaceInfoPanel({
   leader,
   gap,
   standings,
+  onDriverSelect,
 }: RaceInfoPanelProps) {
   return (
     <section className="flex h-full flex-col border border-zinc-800 bg-zinc-950/70 px-5 py-4">
@@ -57,11 +59,12 @@ export function RaceInfoPanel({
           {standings.map((driver) => (
             <button
               key={driver.number}
+              onClick={() => onDriverSelect?.(driver.number)}
               className={[
                 "flex items-center justify-between rounded border px-3 py-2 text-left transition-colors",
                 driver.highlight
                   ? "border-red-500 bg-red-950/40 text-zinc-50"
-                  : "border-zinc-800 bg-zinc-950/60 text-zinc-200 hover:border-red-500/70",
+                  : "border-zinc-800 bg-zinc-950/60 text-zinc-200 hover:border-red-500/70 hover:bg-zinc-900",
               ].join(" ")}
             >
               <div className="flex items-center gap-3">
