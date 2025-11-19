@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   DashboardHeader,
@@ -43,77 +43,112 @@ type DashboardData = {
   playback: Omit<PlaybackControlsProps, "onPlayPause" | "onStepBack" | "onStepForward" | "onScrub">;
 };
 
-const MOCK_FRAME_DURATION_MS = 200;
 const DEFAULT_FOCUSED_CAR = 7;
 
 export function DashboardPlaybackContainer() {
   const timeline: RaceTimeline = useMemo(() => getMockRaceTimeline(), []);
-  const totalFrames = timeline.length;
+  
+  // We assume the timeline is sorted by timestamp
+  const totalDurationMs = timeline.length > 0 ? timeline[timeline.length - 1].timestampMs : 0;
 
-  const [frameIndex, setFrameIndex] = useState(0);
+  const [currentTimeMs, setCurrentTimeMs] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [focusedCarNumber] = useState(DEFAULT_FOCUSED_CAR);
+  
+  // Ref to track the last animation frame time
+  const lastFrameTimeRef = useRef<number | null>(null);
+  const requestRef = useRef<number | null>(null);
 
-  // Advance frames while playing.
-  useEffect(() => {
-    if (!isPlaying || totalFrames === 0) return;
-
-    const id = window.setInterval(() => {
-      setFrameIndex((prev) => {
-        if (prev + 1 >= totalFrames) {
-          return prev;
+  const animate = (time: number) => {
+    if (lastFrameTimeRef.current !== null) {
+      const deltaTime = time - lastFrameTimeRef.current;
+      
+      setCurrentTimeMs((prev) => {
+        const nextTime = prev + deltaTime;
+        if (nextTime >= totalDurationMs) {
+          setIsPlaying(false);
+          return totalDurationMs;
         }
-        return prev + 1;
+        return nextTime;
       });
-    }, MOCK_FRAME_DURATION_MS);
-
-    return () => window.clearInterval(id);
-  }, [isPlaying, totalFrames]);
-
-  // Auto-pause when we hit the last frame.
-  useEffect(() => {
-    if (isPlaying && frameIndex >= totalFrames - 1) {
-      setIsPlaying(false);
     }
-  }, [frameIndex, totalFrames, isPlaying]);
+    lastFrameTimeRef.current = time;
+    requestRef.current = requestAnimationFrame(animate);
+  };
 
-  const currentFrame: RaceFrame | undefined =
-    totalFrames > 0 ? timeline[frameIndex] : undefined;
+  useEffect(() => {
+    if (isPlaying) {
+      requestRef.current = requestAnimationFrame(animate);
+    } else {
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
+      }
+      lastFrameTimeRef.current = null;
+    }
 
-  const progressRatio =
-    totalFrames > 1 ? frameIndex / (totalFrames - 1) : 0;
+    return () => {
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
+      }
+    };
+  }, [isPlaying, totalDurationMs]);
+
+  // Interpolate state based on currentTimeMs
+  const currentFrame = useMemo(() => {
+    if (timeline.length === 0) return undefined;
+    
+    // Find the frame indices surrounding the current time
+    let nextIndex = timeline.findIndex(f => f.timestampMs > currentTimeMs);
+    
+    if (nextIndex === -1) {
+      // We are past the end, show last frame
+      return timeline[timeline.length - 1];
+    }
+    
+    if (nextIndex === 0) {
+      return timeline[0];
+    }
+    
+    const prevFrame = timeline[nextIndex - 1];
+    const nextFrame = timeline[nextIndex];
+    
+    const range = nextFrame.timestampMs - prevFrame.timestampMs;
+    const progress = (currentTimeMs - prevFrame.timestampMs) / range;
+    
+    return interpolateFrames(prevFrame, nextFrame, progress);
+  }, [timeline, currentTimeMs]);
+
+  const progressRatio = totalDurationMs > 0 ? currentTimeMs / totalDurationMs : 0;
 
   const dashboardData: DashboardData | undefined = currentFrame
     ? mapFrameToDashboardData(currentFrame, focusedCarNumber, isPlaying, progressRatio)
     : undefined;
 
   const handlePlayPause = () => {
-    if (!totalFrames) return;
+    if (!totalDurationMs) return;
     // Restart from the beginning if we're at the end.
-    if (!isPlaying && frameIndex >= totalFrames - 1) {
-      setFrameIndex(0);
+    if (!isPlaying && currentTimeMs >= totalDurationMs) {
+      setCurrentTimeMs(0);
     }
     setIsPlaying((prev) => !prev);
   };
 
   const handleStepBack = () => {
-    if (!totalFrames) return;
     setIsPlaying(false);
-    setFrameIndex((prev) => Math.max(0, prev - 1));
+    setCurrentTimeMs((prev) => Math.max(0, prev - 1000)); // Step back 1s
   };
 
   const handleStepForward = () => {
-    if (!totalFrames) return;
     setIsPlaying(false);
-    setFrameIndex((prev) => Math.min(totalFrames - 1, prev + 1));
+    setCurrentTimeMs((prev) => Math.min(totalDurationMs, prev + 1000)); // Step forward 1s
   };
 
   const handleScrub = (ratio: number) => {
-    if (!totalFrames) return;
+    if (!totalDurationMs) return;
     const clamped = Math.max(0, Math.min(1, ratio));
-    const index = Math.round(clamped * (totalFrames - 1));
+    const time = clamped * totalDurationMs;
     setIsPlaying(false);
-    setFrameIndex(index);
+    setCurrentTimeMs(time);
   };
 
   if (!dashboardData) {
@@ -169,6 +204,62 @@ export function DashboardPlaybackContainer() {
   );
 }
 
+function interpolateFrames(prev: RaceFrame, next: RaceFrame, t: number): RaceFrame {
+  // t is 0..1
+  
+  // Interpolate drivers
+  const drivers = prev.drivers.map(prevDriver => {
+    const nextDriver = next.drivers.find(d => d.carNumber === prevDriver.carNumber);
+    if (!nextDriver) return prevDriver;
+    
+    return {
+      ...prevDriver,
+      trackProgress: lerp(prevDriver.trackProgress, nextDriver.trackProgress, t),
+      speedMph: lerp(prevDriver.speedMph, nextDriver.speedMph, t),
+      throttlePercent: lerp(prevDriver.throttlePercent, nextDriver.throttlePercent, t),
+      brakePercent: lerp(prevDriver.brakePercent, nextDriver.brakePercent, t),
+      steeringAngleDeg: lerp(prevDriver.steeringAngleDeg, nextDriver.steeringAngleDeg, t),
+      rpm: lerp(prevDriver.rpm, nextDriver.rpm, t),
+      // Discrete values flip at 0.5
+      gear: t < 0.5 ? prevDriver.gear : nextDriver.gear,
+      position: t < 0.5 ? prevDriver.position : nextDriver.position,
+      gapToLeaderSeconds: lerp(prevDriver.gapToLeaderSeconds, nextDriver.gapToLeaderSeconds, t),
+    };
+  });
+
+  return {
+    ...prev,
+    timestampMs: lerp(prev.timestampMs, next.timestampMs, t),
+    raceProgress: lerp(prev.raceProgress, next.raceProgress, t),
+    // Discrete values
+    status: t < 0.5 ? prev.status : next.status,
+    lap: t < 0.5 ? prev.lap : next.lap,
+    totalLaps: prev.totalLaps,
+    drivers,
+  };
+}
+
+function lerp(start: number, end: number, t: number) {
+  // Handle wrap-around for track progress if needed, but our data is 0-1
+  // If one is 0.99 and other is 0.01, we should interpolate across the boundary.
+  // But for simplicity let's assume linear for now unless we see jumping.
+  // Actually, trackProgress wraps 0->1.
+  if (Math.abs(end - start) > 0.5) {
+    // Wrapping case
+    if (start > end) {
+      // e.g. 0.9 -> 0.1. Treat 0.1 as 1.1
+      return (start + (end + 1 - start) * t) % 1;
+    } else {
+      // e.g. 0.1 -> 0.9. Treat 0.9 as -0.1? No, usually forward.
+      // This case implies going backwards? Or just a big jump.
+      // Let's just do simple lerp for now, the points are close enough (10fps)
+      // that wrapping shouldn't happen often unless we have very low fps.
+      // With 10fps, max delta is small.
+    }
+  }
+  return start + (end - start) * t;
+}
+
 function mapFrameToDashboardData(
   frame: RaceFrame,
   focusedCarNumber: number,
@@ -186,7 +277,7 @@ function mapFrameToDashboardData(
     trackName: "Barber Motorsports",
     races: ["Race 1", "Race 2"],
     activeRaceIndex: 0,
-    versionLabel: "v0.1 • GR Teleforge",
+    versionLabel: "v0.2 • GR Teleforge",
   };
 
   const raceInfo: RaceInfoPanelProps = {
@@ -217,6 +308,7 @@ function mapFrameToDashboardData(
     carNumber: focused.carNumber,
     driverName: focused.driverName,
     position: `P${focused.position}`,
+    // Pass raw floats for smooth gauges, component will round for text
     speedMph: focused.speedMph,
     throttlePercent: focused.throttlePercent,
     brakePercent: focused.brakePercent,
@@ -273,5 +365,3 @@ function getLastName(fullName: string): string {
   const parts = fullName.trim().split(" ");
   return parts.length > 1 ? parts[parts.length - 1] : fullName;
 }
-
-

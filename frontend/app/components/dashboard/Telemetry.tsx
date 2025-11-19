@@ -40,7 +40,7 @@ export function TelemetryPanel({
         </div>
         <div className="flex items-center justify-between">
           <span className="text-zinc-400">Speed</span>
-          <span className="text-emerald-400">{speedMph} mph</span>
+          <span className="text-emerald-400">{Math.round(speedMph)} mph</span>
         </div>
       </div>
 
@@ -60,21 +60,24 @@ export function TelemetryPanel({
             STEERING
           </div>
           <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900/80">
-            <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-black/60">
+            <div 
+              className="relative flex h-24 w-24 items-center justify-center rounded-full bg-black/60 will-change-transform"
+              style={{ transform: `rotate(${steeringAngleDeg}deg)` }}
+            >
               <div className="absolute inset-4 rounded-full border border-zinc-700" />
               <div className="absolute top-3 h-10 w-[2px] rounded-full bg-red-500" />
               <div className="h-2 w-2 rounded-full bg-red-500" />
             </div>
           </div>
           <div className="mt-2 text-center text-xs font-mono text-zinc-400">
-            {steeringAngleDeg}°
+            {Math.round(steeringAngleDeg)}°
           </div>
         </div>
 
         <div className="space-y-1 text-xs font-mono">
           <div className="flex items-center justify-between">
             <span className="text-zinc-400">RPM</span>
-            <span className="text-emerald-400">{rpm}</span>
+            <span className="text-emerald-400">{Math.round(rpm)}</span>
           </div>
         </div>
       </div>
@@ -95,12 +98,12 @@ function TelemetryBar({
     <div className="space-y-1">
       <div className="flex items-center justify-between text-xs font-mono">
         <span className="text-zinc-400">{label}</span>
-        <span className="text-zinc-100">{value}%</span>
+        <span className="text-zinc-100">{Math.round(value)}%</span>
       </div>
       <div className="h-2 w-full rounded-full bg-zinc-800">
         <div
           className={`h-full rounded-full ${color}`}
-          style={{ width: `${value}%` }}
+          style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
         />
       </div>
     </div>
