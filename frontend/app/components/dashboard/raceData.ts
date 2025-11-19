@@ -144,7 +144,7 @@ export function getMockRaceTimeline(): RaceTimeline {
   const totalLaps = barberStats.totalLaps;
   const fps = 10; // Data points per second
   const lapTimeSeconds = barberStats.avgLapTimeSeconds || 60; // Approx lap time derived from Barber data
-  const totalDurationSeconds = totalLaps * lapTimeSeconds;
+  const totalDurationSeconds = totalLaps * lapTimeSeconds * 1.5; // Add buffer for cornering speed reduction
   const totalFrames = totalDurationSeconds * fps;
   const frameDurationMs = 1000 / fps;
 
