@@ -1,0 +1,525 @@
+{
+  "GR86-002": {
+    "vehicle_id": "GR86-002",
+    "vehicle_number": 2,
+    "pca_analysis": {
+      "pc1_pace": 0.81,
+      "pc2_style": -0.75,
+      "pc3_aggression": -0.15,
+      "percentile_pace": 75
+    },
+    "skill_tags": [
+      "Strong Pace",
+      "Corner Speed Master"
+    ],
+    "cluster_id": 0,
+    "cluster_name": "Consistent Performers"
+  },
+  "GR86-003": {
+    "vehicle_id": "GR86-003",
+    "vehicle_number": 3,
+    "pca_analysis": {
+      "pc1_pace": -0.82,
+      "pc2_style": -0.96,
+      "pc3_aggression": 1.13,
+      "percentile_pace": 34
+    },
+    "skill_tags": [
+      "Corner Speed Master",
+      "Aggressive Braker"
+    ],
+    "cluster_id": 0,
+    "cluster_name": "Consistent Performers"
+  },
+  "GR86-005": {
+    "vehicle_id": "GR86-005",
+    "vehicle_number": 5,
+    "pca_analysis": {
+      "pc1_pace": 3.95,
+      "pc2_style": 4.13,
+      "pc3_aggression": 2.89,
+      "percentile_pace": 93
+    },
+    "skill_tags": [
+      "Elite Pace",
+      "Straight-Line Specialist",
+      "Aggressive Braker"
+    ],
+    "cluster_id": 2,
+    "cluster_name": "Power Drivers"
+  },
+  "GR86-007": {
+    "vehicle_id": "GR86-007",
+    "vehicle_number": 7,
+    "pca_analysis": {
+      "pc1_pace": -1.55,
+      "pc2_style": -1.26,
+      "pc3_aggression": 1.07,
+      "percentile_pace": 12
+    },
+    "skill_tags": [
+      "Development Driver",
+      "Corner Speed Master",
+      "Aggressive Braker"
+    ],
+    "cluster_id": 0,
+    "cluster_name": "Consistent Performers"
+  },
+  "GR86-011": {
+    "vehicle_id": "GR86-011",
+    "vehicle_number": 11,
+    "pca_analysis": {
+      "pc1_pace": 0.38,
+      "pc2_style": -0.74,
+      "pc3_aggression": -0.42,
+      "percentile_pace": 59
+    },
+    "skill_tags": [
+      "Strong Pace",
+      "Corner Speed Master"
+    ],
+    "cluster_id": 0,
+    "cluster_name": "Consistent Performers"
+  },
+  "GR86-012": {
+    "vehicle_id": "GR86-012",
+    "vehicle_number": 12,
+    "pca_analysis": {
+      "pc1_pace": 1.38,
+      "pc2_style": 0.05,
+      "pc3_aggression": 1.05,
+      "percentile_pace": 78
+    },
+    "skill_tags": [
+      "Elite Pace",
+      "Balanced Approach",
+      "Aggressive Braker"
+    ],
+    "cluster_id": 0,
+    "cluster_name": "Consistent Performers"
+  },
+  "GR86-013": {
+    "vehicle_id": "GR86-013",
+    "vehicle_number": 13,
+    "pca_analysis": {
+      "pc1_pace": -1.28,
+      "pc2_style": -1.14,
+      "pc3_aggression": 0.87,
+      "percentile_pace": 15
+    },
+    "skill_tags": [
+      "Development Driver",
+      "Corner Speed Master",
+      "Aggressive Braker"
+    ],
+    "cluster_id": 0,
+    "cluster_name": "Consistent Performers"
+  },
+  "GR86-014": {
+    "vehicle_id": "GR86-014",
+    "vehicle_number": 14,
+    "pca_analysis": {
+      "pc1_pace": 0.19,
+      "pc2_style": -1.02,
+      "pc3_aggression": -2.54,
+      "percentile_pace": 56
+    },
+    "skill_tags": [
+      "Corner Speed Master",
+      "Smooth Operator"
+    ],
+    "cluster_id": 0,
+    "cluster_name": "Consistent Performers"
+  },
+  "GR86-015": {
+    "vehicle_id": "GR86-015",
+    "vehicle_number": 15,
+    "pca_analysis": {
+      "pc1_pace": 5.5,
+      "pc2_style": 0.99,
+      "pc3_aggression": -0.21,
+      "percentile_pace": 96
+    },
+    "skill_tags": [
+      "Elite Pace",
+      "Straight-Line Specialist"
+    ],
+    "cluster_id": 2,
+    "cluster_name": "Power Drivers"
+  },
+  "GR86-016": {
+    "vehicle_id": "GR86-016",
+    "vehicle_number": 16,
+    "pca_analysis": {
+      "pc1_pace": -0.04,
+      "pc2_style": -1.89,
+      "pc3_aggression": -0.54,
+      "percentile_pace": 46
+    },
+    "skill_tags": [
+      "Corner Speed Master",
+      "Smooth Operator"
+    ],
+    "cluster_id": 0,
+    "cluster_name": "Consistent Performers"
+  },
+  "GR86-017": {
+    "vehicle_id": "GR86-017",
+    "vehicle_number": 17,
+    "pca_analysis": {
+      "pc1_pace": -3.39,
+      "pc2_style": 2.06,
+      "pc3_aggression": -1.37,
+      "percentile_pace": 6
+    },
+    "skill_tags": [
+      "Development Driver",
+      "Straight-Line Specialist",
+      "Smooth Operator"
+    ],
+    "cluster_id": 3,
+    "cluster_name": "Developing Talent"
+  },
+  "GR86-021": {
+    "vehicle_id": "GR86-021",
+    "vehicle_number": 21,
+    "pca_analysis": {
+      "pc1_pace": -0.38,
+      "pc2_style": -0.92,
+      "pc3_aggression": 0.55,
+      "percentile_pace": 37
+    },
+    "skill_tags": [
+      "Corner Speed Master",
+      "Aggressive Braker"
+    ],
+    "cluster_id": 0,
+    "cluster_name": "Consistent Performers"
+  },
+  "GR86-031": {
+    "vehicle_id": "GR86-031",
+    "vehicle_number": 31,
+    "pca_analysis": {
+      "pc1_pace": 2.57,
+      "pc2_style": 2.14,
+      "pc3_aggression": 1.95,
+      "percentile_pace": 87
+    },
+    "skill_tags": [
+      "Elite Pace",
+      "Straight-Line Specialist",
+      "Aggressive Braker"
+    ],
+    "cluster_id": 2,
+    "cluster_name": "Power Drivers"
+  },
+  "GR86-041": {
+    "vehicle_id": "GR86-041",
+    "vehicle_number": 41,
+    "pca_analysis": {
+      "pc1_pace": 0.13,
+      "pc2_style": -1.0,
+      "pc3_aggression": 0.46,
+      "percentile_pace": 53
+    },
+    "skill_tags": [
+      "Corner Speed Master"
+    ],
+    "cluster_id": 0,
+    "cluster_name": "Consistent Performers"
+  },
+  "GR86-046": {
+    "vehicle_id": "GR86-046",
+    "vehicle_number": 46,
+    "pca_analysis": {
+      "pc1_pace": -1.09,
+      "pc2_style": -1.45,
+      "pc3_aggression": 1.89,
+      "percentile_pace": 18
+    },
+    "skill_tags": [
+      "Development Driver",
+      "Corner Speed Master",
+      "Aggressive Braker"
+    ],
+    "cluster_id": 0,
+    "cluster_name": "Consistent Performers"
+  },
+  "GR86-047": {
+    "vehicle_id": "GR86-047",
+    "vehicle_number": 47,
+    "pca_analysis": {
+      "pc1_pace": -0.86,
+      "pc2_style": -1.07,
+      "pc3_aggression": -0.09,
+      "percentile_pace": 31
+    },
+    "skill_tags": [
+      "Corner Speed Master"
+    ],
+    "cluster_id": 0,
+    "cluster_name": "Consistent Performers"
+  },
+  "GR86-050": {
+    "vehicle_id": "GR86-050",
+    "vehicle_number": 50,
+    "pca_analysis": {
+      "pc1_pace": -3.58,
+      "pc2_style": 2.09,
+      "pc3_aggression": -1.01,
+      "percentile_pace": 3
+    },
+    "skill_tags": [
+      "Development Driver",
+      "Straight-Line Specialist",
+      "Smooth Operator"
+    ],
+    "cluster_id": 3,
+    "cluster_name": "Developing Talent"
+  },
+  "GR86-051": {
+    "vehicle_id": "GR86-051",
+    "vehicle_number": 51,
+    "pca_analysis": {
+      "pc1_pace": -0.3,
+      "pc2_style": -0.73,
+      "pc3_aggression": 1.06,
+      "percentile_pace": 40
+    },
+    "skill_tags": [
+      "Corner Speed Master",
+      "Aggressive Braker"
+    ],
+    "cluster_id": 0,
+    "cluster_name": "Consistent Performers"
+  },
+  "GR86-055": {
+    "vehicle_id": "GR86-055",
+    "vehicle_number": 55,
+    "pca_analysis": {
+      "pc1_pace": -1.09,
+      "pc2_style": -1.1,
+      "pc3_aggression": 0.64,
+      "percentile_pace": 21
+    },
+    "skill_tags": [
+      "Development Driver",
+      "Corner Speed Master",
+      "Aggressive Braker"
+    ],
+    "cluster_id": 0,
+    "cluster_name": "Consistent Performers"
+  },
+  "GR86-061": {
+    "vehicle_id": "GR86-061",
+    "vehicle_number": 61,
+    "pca_analysis": {
+      "pc1_pace": -1.74,
+      "pc2_style": 4.64,
+      "pc3_aggression": 0.59,
+      "percentile_pace": 9
+    },
+    "skill_tags": [
+      "Development Driver",
+      "Straight-Line Specialist",
+      "Aggressive Braker"
+    ],
+    "cluster_id": 1,
+    "cluster_name": "Technical Specialists"
+  },
+  "GR86-067": {
+    "vehicle_id": "GR86-067",
+    "vehicle_number": 67,
+    "pca_analysis": {
+      "pc1_pace": -0.06,
+      "pc2_style": 3.92,
+      "pc3_aggression": -2.85,
+      "percentile_pace": 43
+    },
+    "skill_tags": [
+      "Straight-Line Specialist",
+      "Smooth Operator"
+    ],
+    "cluster_id": 1,
+    "cluster_name": "Technical Specialists"
+  },
+  "GR86-071": {
+    "vehicle_id": "GR86-071",
+    "vehicle_number": 71,
+    "pca_analysis": {
+      "pc1_pace": 0.52,
+      "pc2_style": -2.01,
+      "pc3_aggression": 0.93,
+      "percentile_pace": 62
+    },
+    "skill_tags": [
+      "Strong Pace",
+      "Corner Speed Master",
+      "Aggressive Braker"
+    ],
+    "cluster_id": 0,
+    "cluster_name": "Consistent Performers"
+  },
+  "GR86-072": {
+    "vehicle_id": "GR86-072",
+    "vehicle_number": 72,
+    "pca_analysis": {
+      "pc1_pace": -0.99,
+      "pc2_style": -1.24,
+      "pc3_aggression": 0.95,
+      "percentile_pace": 25
+    },
+    "skill_tags": [
+      "Corner Speed Master",
+      "Aggressive Braker"
+    ],
+    "cluster_id": 0,
+    "cluster_name": "Consistent Performers"
+  },
+  "GR86-073": {
+    "vehicle_id": "GR86-073",
+    "vehicle_number": 73,
+    "pca_analysis": {
+      "pc1_pace": 2.51,
+      "pc2_style": -0.91,
+      "pc3_aggression": -4.63,
+      "percentile_pace": 84
+    },
+    "skill_tags": [
+      "Elite Pace",
+      "Corner Speed Master",
+      "Smooth Operator"
+    ],
+    "cluster_id": 0,
+    "cluster_name": "Consistent Performers"
+  },
+  "GR86-078": {
+    "vehicle_id": "GR86-078",
+    "vehicle_number": 78,
+    "pca_analysis": {
+      "pc1_pace": 0.01,
+      "pc2_style": -1.91,
+      "pc3_aggression": -0.6,
+      "percentile_pace": 50
+    },
+    "skill_tags": [
+      "Corner Speed Master",
+      "Smooth Operator"
+    ],
+    "cluster_id": 0,
+    "cluster_name": "Consistent Performers"
+  },
+  "GR86-080": {
+    "vehicle_id": "GR86-080",
+    "vehicle_number": 80,
+    "pca_analysis": {
+      "pc1_pace": 2.96,
+      "pc2_style": 1.22,
+      "pc3_aggression": -0.84,
+      "percentile_pace": 90
+    },
+    "skill_tags": [
+      "Elite Pace",
+      "Straight-Line Specialist",
+      "Smooth Operator"
+    ],
+    "cluster_id": 2,
+    "cluster_name": "Power Drivers"
+  },
+  "GR86-088": {
+    "vehicle_id": "GR86-088",
+    "vehicle_number": 88,
+    "pca_analysis": {
+      "pc1_pace": 0.52,
+      "pc2_style": -0.9,
+      "pc3_aggression": -0.18,
+      "percentile_pace": 65
+    },
+    "skill_tags": [
+      "Strong Pace",
+      "Corner Speed Master"
+    ],
+    "cluster_id": 0,
+    "cluster_name": "Consistent Performers"
+  },
+  "GR86-089": {
+    "vehicle_id": "GR86-089",
+    "vehicle_number": 89,
+    "pca_analysis": {
+      "pc1_pace": 0.58,
+      "pc2_style": -0.7,
+      "pc3_aggression": 0.47,
+      "percentile_pace": 68
+    },
+    "skill_tags": [
+      "Strong Pace",
+      "Corner Speed Master"
+    ],
+    "cluster_id": 0,
+    "cluster_name": "Consistent Performers"
+  },
+  "GR86-093": {
+    "vehicle_id": "GR86-093",
+    "vehicle_number": 93,
+    "pca_analysis": {
+      "pc1_pace": -0.86,
+      "pc2_style": -0.31,
+      "pc3_aggression": 0.03,
+      "percentile_pace": 28
+    },
+    "skill_tags": [
+      "Balanced Approach"
+    ],
+    "cluster_id": 0,
+    "cluster_name": "Consistent Performers"
+  },
+  "GR86-098": {
+    "vehicle_id": "GR86-098",
+    "vehicle_number": 98,
+    "pca_analysis": {
+      "pc1_pace": 0.64,
+      "pc2_style": -0.61,
+      "pc3_aggression": 0.1,
+      "percentile_pace": 71
+    },
+    "skill_tags": [
+      "Strong Pace",
+      "Corner Speed Master"
+    ],
+    "cluster_id": 0,
+    "cluster_name": "Consistent Performers"
+  },
+  "GR86-111": {
+    "vehicle_id": "GR86-111",
+    "vehicle_number": 111,
+    "pca_analysis": {
+      "pc1_pace": -6.0,
+      "pc2_style": 1.93,
+      "pc3_aggression": 0.06,
+      "percentile_pace": 0
+    },
+    "skill_tags": [
+      "Development Driver",
+      "Straight-Line Specialist"
+    ],
+    "cluster_id": 3,
+    "cluster_name": "Developing Talent"
+  },
+  "GR86-113": {
+    "vehicle_id": "GR86-113",
+    "vehicle_number": 113,
+    "pca_analysis": {
+      "pc1_pace": 1.4,
+      "pc2_style": -0.55,
+      "pc3_aggression": -1.27,
+      "percentile_pace": 81
+    },
+    "skill_tags": [
+      "Elite Pace",
+      "Corner Speed Master",
+      "Smooth Operator"
+    ],
+    "cluster_id": 0,
+    "cluster_name": "Consistent Performers"
+  }
+}
