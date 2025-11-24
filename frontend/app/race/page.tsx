@@ -227,14 +227,6 @@ export default function RacePage() {
         />
       </div>
 
-      {/* GR Branding */}
-      <div className="fixed top-5 right-6 z-50 flex items-center gap-2">
-        <span className="text-2xl font-black">
-          <span className="text-white">G</span>
-          <span className="text-[#D71921]">R</span>
-        </span>
-        <span className="text-xs text-zinc-500 font-bold tracking-wider">TELEFORGE</span>
-      </div>
 
       {/* Header */}
       <Header

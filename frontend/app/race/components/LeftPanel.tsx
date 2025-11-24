@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import type { ProcessedEvent, TrackName, RaceNumber } from '../types';
+import { TRACK_WEATHER, TRACK_INFO } from '../data/weather';
 
 interface LeftPanelProps {
   drivers: string[];
@@ -28,106 +28,124 @@ export function LeftPanel({
   onDriverSelect,
   getDriverColor
 }: LeftPanelProps) {
-  const [selectedEventForAnalysis, setSelectedEventForAnalysis] = useState<ProcessedEvent | null>(null);
-  const [analysis, setAnalysis] = useState<string>('');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const weather = TRACK_WEATHER[trackName]?.[raceNumber];
+  const trackInfo = TRACK_INFO[trackName];
 
   const getDriverNumber = (driverId: string) => driverId.split('-').pop() || '?';
 
-  // Fetch analysis when event selected
-  const analyzeEvent = async (event: ProcessedEvent) => {
-    setSelectedEventForAnalysis(event);
-    setIsAnalyzing(true);
-    setAnalysis('');
-
-    try {
-      const res = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...event, Track: trackName })
-      });
-      const data = await res.json();
-      setAnalysis(data.analysis || 'Analysis unavailable.');
-    } catch {
-      setAnalysis('Unable to generate analysis. Please try again.');
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
   return (
     <div className="p-4 pt-20 h-full flex flex-col overflow-hidden text-white">
-      {/* Header */}
+      {/* Track Info Header */}
       <div className="mb-4">
-        <h2 className="text-lg font-black text-white">EVENT ANALYSIS</h2>
-        <p className="text-xs text-zinc-500">Click an overtake to analyze</p>
+        <h2 className="text-xl font-black text-white">{trackName}</h2>
+        <p className="text-xs text-zinc-500">{trackInfo?.location}</p>
       </div>
 
-      {/* Selected Event Analysis */}
-      {selectedEventForAnalysis && (
-        <div className="mb-4 bg-gradient-to-br from-blue-900/40 to-purple-900/40 border border-blue-500/30 rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-            <span className="text-[10px] text-blue-400 uppercase tracking-wider font-bold">AI Analysis</span>
-          </div>
-          
-          <div className="flex items-center gap-2 mb-3">
-            <span 
-              className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
-              style={{ backgroundColor: getDriverColor(selectedEventForAnalysis.Winner_ID), color: '#000' }}
-            >
-              {getDriverNumber(selectedEventForAnalysis.Winner_ID)}
-            </span>
-            <span className="text-green-400 text-xs">overtakes</span>
-            <span 
-              className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
-              style={{ backgroundColor: getDriverColor(selectedEventForAnalysis.Loser_ID), color: '#000' }}
-            >
-              {getDriverNumber(selectedEventForAnalysis.Loser_ID)}
-            </span>
-            <span className="text-zinc-500 text-xs ml-auto">
-              L{selectedEventForAnalysis.Lap_Number} • {selectedEventForAnalysis.Sector_ID}
-            </span>
-          </div>
+      {/* Track Stats */}
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        <div className="bg-zinc-900/60 rounded-lg p-2 text-center">
+          <p className="text-[9px] text-zinc-500 uppercase">Length</p>
+          <p className="text-sm font-bold text-white">{trackInfo?.length} mi</p>
+        </div>
+        <div className="bg-zinc-900/60 rounded-lg p-2 text-center">
+          <p className="text-[9px] text-zinc-500 uppercase">Turns</p>
+          <p className="text-sm font-bold text-white">{trackInfo?.turns}</p>
+        </div>
+        <div className="bg-zinc-900/60 rounded-lg p-2 text-center">
+          <p className="text-[9px] text-zinc-500 uppercase">Lap</p>
+          <p className="text-sm font-bold text-white">{currentLap}/{totalLaps}</p>
+        </div>
+      </div>
 
-          {isAnalyzing ? (
-            <div className="flex items-center gap-2 text-sm text-zinc-400">
-              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              Analyzing telemetry data...
+      {/* Weather */}
+      {weather && (
+        <div className="bg-gradient-to-br from-blue-900/20 to-cyan-900/20 border border-blue-500/20 rounded-xl p-3 mb-4">
+          <h3 className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Track Conditions</h3>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">
+              {weather.condition === 'Sunny' ? '☀️' : 
+               weather.condition === 'Partly Cloudy' ? '⛅' : '☁️'}
+            </span>
+            <div>
+              <p className="text-2xl font-black text-white">{weather.temperature}°F</p>
+              <p className="text-[10px] text-zinc-500">{weather.condition}</p>
             </div>
-          ) : (
-            <p className="text-sm text-zinc-300 leading-relaxed">{analysis}</p>
-          )}
-
-          <button 
-            onClick={() => setSelectedEventForAnalysis(null)}
-            className="mt-3 text-xs text-zinc-500 hover:text-white"
-          >
-            Clear analysis
-          </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
+            <div className="bg-zinc-900/40 rounded p-2">
+              <p className="text-[9px] text-zinc-500">Track</p>
+              <p className="text-orange-400 font-bold">{weather.trackTemp}°F</p>
+            </div>
+            <div className="bg-zinc-900/40 rounded p-2">
+              <p className="text-[9px] text-zinc-500">Humidity</p>
+              <p className="text-cyan-400 font-bold">{weather.humidity}%</p>
+            </div>
+            <div className="bg-zinc-900/40 rounded p-2">
+              <p className="text-[9px] text-zinc-500">Wind</p>
+              <p className="text-white font-semibold">{weather.windSpeed} mph</p>
+            </div>
+            <div className="bg-zinc-900/40 rounded p-2">
+              <p className="text-[9px] text-zinc-500">Rain</p>
+              <p className="text-blue-400 font-semibold">{weather.rainChance}%</p>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Live Overtakes */}
+      {/* Standings */}
       <div className="flex-1 min-h-0">
         <h3 className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-2">
-          <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-          Live Overtakes
+          <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+          Live Standings
         </h3>
-        <div className="space-y-1 overflow-y-auto max-h-[250px] pr-1">
+        <div className="space-y-1 overflow-y-auto max-h-[300px] pr-1">
+          {drivers.slice(0, 20).map((driver, idx) => (
+            <button
+              key={driver}
+              onClick={() => onDriverSelect(selectedDriver === driver ? null : driver)}
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all ${
+                selectedDriver === driver 
+                  ? 'bg-[#D71921]/20 ring-1 ring-[#D71921]' 
+                  : 'bg-zinc-900/40 hover:bg-zinc-800/60'
+              }`}
+            >
+              <span className={`text-xs font-bold w-6 ${idx < 3 ? 'text-[#D71921]' : 'text-zinc-500'}`}>
+                P{idx + 1}
+              </span>
+              <span 
+                className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
+                style={{ backgroundColor: getDriverColor(driver), color: '#000' }}
+              >
+                {getDriverNumber(driver)}
+              </span>
+              <span className="text-sm text-zinc-300 flex-1">
+                #{getDriverNumber(driver)}
+              </span>
+              {idx === 0 && (
+                <span className="text-[9px] text-yellow-500 font-bold">LEADER</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Live Events Feed */}
+      <div className="mt-4 pt-4 border-t border-zinc-800">
+        <h3 className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+          <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+          Recent Overtakes
+        </h3>
+        <div className="space-y-1 max-h-24 overflow-y-auto">
           {activeEvents.length === 0 ? (
-            <p className="text-xs text-zinc-600 italic">Waiting for overtakes...</p>
+            <p className="text-xs text-zinc-600 italic">No recent overtakes</p>
           ) : (
-            activeEvents.slice(0, 12).map((event, idx) => (
-              <button
+            activeEvents.slice(0, 4).map((event, idx) => (
+              <div
                 key={event.Critical_Event_ID}
-                onClick={() => analyzeEvent(event)}
-                className={`w-full flex items-center gap-2 p-2 rounded text-xs transition-all hover:bg-zinc-800 ${
-                  selectedEventForAnalysis?.Critical_Event_ID === event.Critical_Event_ID 
-                    ? 'bg-blue-900/30 border border-blue-500/30' 
-                    : idx === 0 ? 'bg-red-500/20 border border-red-500/30' : 'bg-zinc-900/40'
+                className={`flex items-center gap-2 p-2 rounded text-xs ${
+                  idx === 0 ? 'bg-red-500/20 border border-red-500/30' : 'bg-zinc-900/40'
                 }`}
-                style={{ opacity: 1 - idx * 0.06 }}
+                style={{ opacity: 1 - idx * 0.15 }}
               >
                 <span 
                   className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold"
@@ -142,37 +160,10 @@ export function LeftPanel({
                 >
                   {getDriverNumber(event.Loser_ID)}
                 </span>
-                <span className="text-zinc-500 ml-auto text-[10px]">
-                  #{getDriverNumber(event.Winner_ID)} → #{getDriverNumber(event.Loser_ID)}
-                </span>
-              </button>
+                <span className="text-zinc-500 ml-auto text-[10px]">L{event.Lap_Number}</span>
+              </div>
             ))
           )}
-        </div>
-      </div>
-
-      {/* Standings */}
-      <div className="mt-4 pt-4 border-t border-zinc-800">
-        <h3 className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Standings</h3>
-        <div className="grid grid-cols-2 gap-1 max-h-32 overflow-y-auto">
-          {drivers.slice(0, 10).map((driver, idx) => (
-            <button
-              key={driver}
-              onClick={() => onDriverSelect(selectedDriver === driver ? null : driver)}
-              className={`flex items-center gap-1.5 px-2 py-1 rounded text-left text-xs transition-all ${
-                selectedDriver === driver ? 'bg-white/10 ring-1 ring-[#D71921]' : 'hover:bg-white/5'
-              }`}
-            >
-              <span className="text-[9px] text-zinc-500 w-4">P{idx + 1}</span>
-              <span 
-                className="w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-bold"
-                style={{ backgroundColor: getDriverColor(driver), color: '#000' }}
-              >
-                {getDriverNumber(driver)}
-              </span>
-              <span className="text-zinc-400">#{getDriverNumber(driver)}</span>
-            </button>
-          ))}
         </div>
       </div>
     </div>
