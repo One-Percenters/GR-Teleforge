@@ -10,6 +10,9 @@ import { LapProgressStrip, type LapProgressProps } from "./LapProgress";
 import { PlaybackControls, type PlaybackControlsProps } from "./PlaybackControls";
 import { DriverDNA } from "./DriverDNA";
 import { DataSourceSidebar } from "./DataSourceSidebar";
+import { GhostOverlay } from "./GhostOverlay";
+import { BattlePredictor } from "./BattlePredictor";
+import { TireDegradation, type TireDegradationData } from "./TireDegradation";
 
 import {
   type RaceFrame,
@@ -131,6 +134,46 @@ export function DashboardPlaybackContainer() {
     ? mapFrameToDashboardData(currentFrame, focusedCarNumber, isPlaying, progressRatio, raceMetadata)
     : undefined;
 
+  // Generate tire data for the current frame
+  const tireDegData = useMemo(() => {
+    if (!currentFrame) return undefined;
+    return generateMockTireData(currentFrame);
+  }, [currentFrame?.lap]);
+
+  const referenceCarNumber = useMemo(() => {
+    if (!currentFrame) return 0;
+    const sorted = [...currentFrame.drivers].sort((a, b) => a.position - b.position);
+    if (sorted.length < 2) return 0;
+
+    const leader = sorted[0];
+    // If we are the leader, compare with P2 (the chaser)
+    if (focusedCarNumber === leader.carNumber) {
+      return sorted[1].carNumber;
+    }
+    // Otherwise compare with leader
+    return leader.carNumber;
+  }, [currentFrame, focusedCarNumber]);
+
+  // Determine the target car for the Battle Predictor
+  const battleTargetCarNumber = useMemo(() => {
+    if (!currentFrame) return 0;
+    const sorted = [...currentFrame.drivers].sort((a, b) => a.position - b.position);
+    const focusedIndex = sorted.findIndex(d => d.carNumber === focusedCarNumber);
+
+    if (focusedIndex === -1) return 0;
+
+    // If we are P1, look at P2 (behind)
+    if (focusedIndex === 0) {
+      return sorted.length > 1 ? sorted[1].carNumber : 0;
+    }
+
+    // Otherwise look at the car ahead
+    return sorted[focusedIndex - 1].carNumber;
+  }, [currentFrame, focusedCarNumber]);
+
+  const currentFocusedDriver = currentFrame?.drivers.find((d) => d.carNumber === focusedCarNumber);
+  const currentProgress = currentFocusedDriver?.trackProgress || 0;
+
   // ---------- EARLY RETURNS ONLY AFTER ALL HOOKS ----------
 
   if (loading || !timeline) {
@@ -168,41 +211,80 @@ export function DashboardPlaybackContainer() {
   const { header, raceInfo, trackMap, telemetry, lapProgress, playback } = dashboardData;
 
   return (
-    <div className="flex min-h-screen flex-col bg-black text-zinc-100">
+    <div className="flex h-screen flex-col bg-black text-zinc-100 overflow-hidden">
       {/* Data Source Sidebar */}
       <DataSourceSidebar
         currentSource={selectedDataSource}
         onSourceSelect={setSelectedDataSource}
       />
 
-      <DashboardHeader {...header} />
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-6 py-6">
-        <div className="mb-2 flex items-baseline justify-between gap-4">
-          <div className="text-xs font-semibold tracking-[0.3em] text-zinc-500 uppercase"></div>
-          <div className="text-xs font-mono text-zinc-500"></div>
-        </div>
-        <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-12">
-          <div className="lg:col-span-3 flex flex-col gap-4">
-            <div className="h-[60vh] flex flex-col">
+      <div className="flex-none">
+        <DashboardHeader {...header} />
+      </div>
+
+      <main className="flex flex-1 w-full gap-4 px-4 py-2 overflow-hidden">
+        <div className="grid h-full w-full grid-cols-12 gap-4">
+
+          {/* COLUMN 1: Race Info & Driver List (Dedicated Column) */}
+          <div className="col-span-2 flex flex-col gap-3 h-full overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-hidden">
               <RaceInfoPanel {...raceInfo} onDriverSelect={(car) => setFocusedCarNumber(car)} />
             </div>
-            <DriverDNA focusedCarNumber={focusedCarNumber} />
+            <div className="flex-[0.4] min-h-0">
+              <BattlePredictor
+                timeline={timeline}
+                currentLap={currentFrame?.lap || 0}
+                focusedCarNumber={focusedCarNumber}
+                targetCarNumber={battleTargetCarNumber}
+              />
+            </div>
           </div>
-          <div className="lg:col-span-6">
-            <TrackMap {...trackMap} />
+
+          {/* COLUMN 2: Strategy & Analysis (Stacked) */}
+          <div className="col-span-2 flex flex-col gap-3 h-full overflow-hidden">
+            <div className="flex-none">
+              <DriverDNA focusedCarNumber={focusedCarNumber} />
+            </div>
+            <div className="flex-1 min-h-0">
+              <TireDegradation focusedCarNumber={focusedCarNumber} tireDegData={tireDegData} />
+            </div>
           </div>
-          <div className="lg:col-span-3">
-            <TelemetryPanel {...telemetry} />
+
+          {/* COLUMN 3: Track Map (Center Stage) */}
+          <div className="col-span-5 h-full rounded-2xl border border-zinc-800 bg-zinc-900/50 relative overflow-hidden">
+            <div className="absolute inset-0">
+              <TrackMap {...trackMap} />
+            </div>
           </div>
+
+          {/* COLUMN 4: Telemetry & Analytics */}
+          <div className="col-span-3 flex flex-col gap-3 h-full overflow-hidden">
+            <div className="flex-none">
+              <TelemetryPanel {...telemetry} />
+            </div>
+            <div className="flex-1 min-h-0">
+              <GhostOverlay
+                timeline={timeline}
+                currentLap={currentFrame?.lap || 0}
+                focusedCarNumber={focusedCarNumber}
+                comparisonCarNumber={referenceCarNumber}
+                currentProgress={currentProgress}
+              />
+            </div>
+          </div>
+
         </div>
       </main>
-      <LapProgressStrip {...lapProgress} onScrub={handleScrub} />
-      <PlaybackControls
-        {...playback}
-        onPlayPause={handlePlayPause}
-        onStepBack={handleStepBack}
-        onStepForward={handleStepForward}
-      />
+
+      <div className="flex-none">
+        <LapProgressStrip {...lapProgress} onScrub={handleScrub} />
+        <PlaybackControls
+          {...playback}
+          onPlayPause={handlePlayPause}
+          onStepBack={handleStepBack}
+          onStepForward={handleStepForward}
+        />
+      </div>
     </div>
   );
 }
@@ -330,4 +412,38 @@ function driverToMarker(driver: DriverState): TrackCarMarker {
 function getLastName(fullName: string): string {
   const parts = fullName.trim().split(" ");
   return parts.length > 1 ? parts[parts.length - 1] : fullName;
+}
+
+function generateMockTireData(frame: RaceFrame): Record<string, TireDegradationData> {
+  const data: Record<string, TireDegradationData> = {};
+
+  frame.drivers.forEach(driver => {
+    const currentLap = Math.max(1, frame.lap);
+    const lapTimes: number[] = [];
+    // Baseline time around 80s
+    const baseline = 80.0;
+
+    // Generate history
+    for (let i = 1; i <= currentLap; i++) {
+      // Simulate degradation: +0.05s per lap linear deg
+      // Add some noise based on driver ID to make it look different
+      const noise = Math.sin(i * 0.5 + driver.carNumber) * 0.3;
+      const deg = (i - 1) * 0.08;
+      lapTimes.push(baseline + deg + noise);
+    }
+
+    data[driver.carNumber] = {
+      driverId: driver.carNumber,
+      lapTimes,
+      lapNumbers: Array.from({ length: currentLap }, (_, i) => i + 1),
+      degradationRate: 0.08,
+      optimalPitLap: 25,
+      optimalPitWindow: [24, 28],
+      confidence: 0.85,
+      baselineTime: baseline,
+      totalLaps: frame.totalLaps
+    };
+  });
+
+  return data;
 }

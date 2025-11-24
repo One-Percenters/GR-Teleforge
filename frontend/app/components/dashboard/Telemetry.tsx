@@ -22,63 +22,54 @@ export function TelemetryPanel({
   rpm,
 }: TelemetryPanelProps) {
   return (
-    <section className="flex h-full flex-col border border-zinc-800 bg-zinc-950/70 px-5 py-4">
-      <h2 className="mb-4 text-xs font-semibold tracking-[0.35em] text-red-500">
-        TELEMETRY
-      </h2>
-
-      <div className="space-y-1 text-xs font-mono">
-        <div className="flex items-center justify-between">
-          <span className="text-zinc-400">Driver</span>
-          <span className="text-zinc-100">
-            #{carNumber} {driverName}
-          </span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-zinc-400">Position</span>
-          <span className="text-amber-300">{position}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-zinc-400">Speed</span>
-          <span className="text-emerald-400">{Math.round(speedMph)} mph</span>
+    <section className="flex h-full flex-col border border-zinc-800 bg-zinc-950/70 px-4 py-3">
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-[10px] font-semibold tracking-[0.2em] text-red-500">TELEMETRY</h2>
+        <div className="flex items-center gap-2 text-xs font-mono">
+          <span className="text-zinc-100">#{carNumber} {driverName}</span>
+          <span className="text-amber-300 font-bold">{position}</span>
         </div>
       </div>
 
-      <div className="mt-6 space-y-4 text-xs font-mono">
-        <TelemetryBar label="Throttle" value={throttlePercent} color="bg-emerald-500" />
-        <TelemetryBar label="Brake" value={brakePercent} color="bg-zinc-500" />
-
-        <div className="flex items-center justify-between">
-          <span className="text-zinc-400">Gear</span>
-          <span className="text-amber-300 text-base">{gear}</span>
-        </div>
-      </div>
-
-      <div className="mt-8 flex flex-1 flex-col gap-6">
-        <div>
-          <div className="mb-3 text-xs font-semibold tracking-[0.35em] text-zinc-400">
-            STEERING
+      <div className="flex flex-1 gap-4">
+        {/* Left: Bars & Stats */}
+        <div className="flex-1 flex flex-col justify-center gap-3">
+          <div className="flex items-end justify-between">
+            <span className="text-zinc-400 text-[10px] uppercase">Speed</span>
+            <span className="text-2xl font-mono font-bold text-emerald-400 leading-none">
+              {Math.round(speedMph)} <span className="text-xs text-zinc-600 font-normal">mph</span>
+            </span>
           </div>
-          <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900/80">
-            <div 
-              className="relative flex h-24 w-24 items-center justify-center rounded-full bg-black/60 will-change-transform"
-              style={{ transform: `rotate(${steeringAngleDeg}deg)` }}
-            >
-              <div className="absolute inset-4 rounded-full border border-zinc-700" />
-              <div className="absolute top-3 h-10 w-[2px] rounded-full bg-red-500" />
-              <div className="h-2 w-2 rounded-full bg-red-500" />
+
+          <div className="space-y-2">
+            <TelemetryBar label="THR" value={throttlePercent} color="bg-emerald-500" />
+            <TelemetryBar label="BRK" value={brakePercent} color="bg-red-500" />
+          </div>
+
+          <div className="flex items-center justify-between mt-1">
+            <div className="flex flex-col">
+              <span className="text-[10px] text-zinc-500 uppercase">Gear</span>
+              <span className="text-xl font-mono text-amber-300 leading-none">{gear}</span>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] text-zinc-500 uppercase">RPM</span>
+              <span className="text-sm font-mono text-zinc-300">{Math.round(rpm)}</span>
             </div>
           </div>
-          <div className="mt-2 text-center text-xs font-mono text-zinc-400">
-            {Math.round(steeringAngleDeg)}°
-          </div>
         </div>
 
-        <div className="space-y-1 text-xs font-mono">
-          <div className="flex items-center justify-between">
-            <span className="text-zinc-400">RPM</span>
-            <span className="text-emerald-400">{Math.round(rpm)}</span>
+        {/* Right: Steering */}
+        <div className="flex flex-col items-center justify-center w-24 border-l border-zinc-800/50 pl-2">
+          <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-zinc-900 border border-zinc-700">
+            <div
+              className="absolute inset-0 flex items-center justify-center will-change-transform"
+              style={{ transform: `rotate(${steeringAngleDeg}deg)` }}
+            >
+              <div className="w-full h-1 bg-zinc-600 rounded-full"></div>
+              <div className="absolute top-0 h-3 w-1 bg-red-500 rounded-full"></div>
+            </div>
           </div>
+          <span className="mt-1 text-[10px] font-mono text-zinc-500">{Math.round(steeringAngleDeg)}°</span>
         </div>
       </div>
     </section>

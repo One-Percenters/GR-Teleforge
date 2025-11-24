@@ -23,7 +23,14 @@ export function TrackMap({
   projectedPathClassName,
   showStartFinish = true,
   startFinishLabel = "S/F",
-}: TrackMapProps) {
+  analysis,
+  focusedCarNumber,
+}: TrackMapProps & { analysis?: any; focusedCarNumber?: number }) {
+  // Extract virtual best analysis data for the currently focused driver
+  // Analysis contains: bestS1, bestS2, bestS3, virtualBest, actualBest, potentialGain
+  const focusedStats = analysis && focusedCarNumber ? analysis[String(focusedCarNumber)] : null;
+  console.log('TrackMap props:', { analysis, focusedCarNumber, focusedStats });
+
   return (
     <section className="relative flex h-[380px] flex-1 items-center justify-center overflow-hidden border border-zinc-800 bg-zinc-950/70 px-6 py-4">
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,#18181b_1px,transparent_1px),linear-gradient(to_bottom,#18181b_1px,transparent_1px)] bg-[size:40px_40px]" />
@@ -62,6 +69,31 @@ export function TrackMap({
           )}
         </div>
       </div>
+
+      {/* Virtual Lap Analysis Overlay - Shows theoretical best lap vs actual */}
+      {focusedStats && (
+        <div className="absolute bottom-2 left-2 z-30 rounded border border-zinc-700/40 bg-zinc-900/95 px-2.5 py-2 shadow-lg backdrop-blur-sm">
+          <h4 className="mb-1.5 text-[9px] font-bold tracking-[0.15em] text-zinc-500 uppercase">
+            Virtual Lap Analysis
+          </h4>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px]">
+            <div className="text-zinc-500">Actual Best</div>
+            <div className="font-mono text-right text-zinc-200">
+              {focusedStats.actualBest ? `${focusedStats.actualBest.toFixed(3)}s` : "--"}
+            </div>
+
+            <div className="text-zinc-500">Virtual Best</div>
+            <div className="font-mono text-right text-amber-400">
+              {focusedStats.virtualBest ? `${focusedStats.virtualBest.toFixed(3)}s` : "--"}
+            </div>
+
+            <div className="text-zinc-500">Potential Gain</div>
+            <div className="font-mono text-right text-emerald-400">
+              {focusedStats.potentialGain > 0 ? `-${focusedStats.potentialGain.toFixed(3)}s` : "0.000s"}
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -81,8 +113,8 @@ function CarDot({
     <div
       style={style}
       className={`absolute flex items-center justify-center rounded-full font-bold transition-all duration-300 ${highlight
-          ? "h-8 w-8 bg-red-600 text-white shadow-lg shadow-red-500/50 z-20 scale-110 ring-2 ring-white/20 text-xs"
-          : "h-5 w-5 bg-zinc-700 text-zinc-300 border border-zinc-600 z-10 text-[9px] opacity-90"
+        ? "h-8 w-8 bg-red-600 text-white shadow-lg shadow-red-500/50 z-20 scale-110 ring-2 ring-white/20 text-xs"
+        : "h-5 w-5 bg-zinc-700 text-zinc-300 border border-zinc-600 z-10 text-[9px] opacity-90"
         } ${className ?? ""}`}
     >
       {label}
