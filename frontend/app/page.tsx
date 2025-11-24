@@ -25,11 +25,18 @@ export default function Home() {
           <p className="text-2xl md:text-3xl font-bold text-zinc-300 mb-4 tracking-wider uppercase">
             Past + Present = <span className="text-red-500 font-black">Future</span>
           </p>
-          <Link href="/dashboard">
-            <button className="mt-8 px-12 py-5 bg-gradient-to-r from-red-600 to-red-700 text-white font-black text-xl uppercase tracking-wider border-2 border-red-500 hover:border-white hover:shadow-[0_0_30px_rgba(239,68,68,0.6)] hover:scale-105 transition-all duration-200 transform skew-x-[-5deg] hover:skew-x-0 pointer-events-auto">
-              <span className="block transform skew-x-[5deg] hover:skew-x-0">Try Now</span>
-            </button>
-          </Link>      
+          <div className="flex justify-center items-center gap-6 mt-8 pointer-events-auto w-full">
+            <Link href="/race">
+              <button className="px-10 py-4 bg-gradient-to-r from-red-600 to-red-700 text-white font-black text-lg uppercase tracking-wider border-2 border-red-500 hover:border-white hover:shadow-[0_0_30px_rgba(239,68,68,0.6)] hover:scale-105 transition-all duration-200">
+                Try Now
+              </button>
+            </Link>
+            <a href="https://devpost.com" target="_blank" rel="noopener noreferrer">
+              <button className="px-10 py-4 bg-transparent text-white font-black text-lg uppercase tracking-wider border-2 border-zinc-600 hover:border-white hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:scale-105 transition-all duration-200">
+                Learn More
+              </button>
+            </a>
+          </div>      
         </div>
       </header>
     </div>
