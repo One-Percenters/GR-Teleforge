@@ -9,6 +9,7 @@ import { TelemetryPanel, type TelemetryPanelProps } from "./Telemetry";
 import { LapProgressStrip, type LapProgressProps } from "./LapProgress";
 import { PlaybackControls, type PlaybackControlsProps } from "./PlaybackControls";
 import { DriverDNA } from "./DriverDNA";
+import { DataSourceSidebar } from "./DataSourceSidebar";
 
 import {
   type RaceFrame,
@@ -34,6 +35,8 @@ export function DashboardPlaybackContainer() {
   // Data loading state
   const [timeline, setTimeline] = useState<RaceTimeline | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedDataSource, setSelectedDataSource] = useState<string | null>(null);
+  const [raceMetadata, setRaceMetadata] = useState<any>(null);
 
   // UI state
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
@@ -44,23 +47,36 @@ export function DashboardPlaybackContainer() {
   const lastFrameTimeRef = useRef<number | null>(null);
   const requestRef = useRef<number | null>(null);
 
-  // Data fetching effect
+  // Data fetching effect - reload when data source changes
   useEffect(() => {
     async function load() {
+      setLoading(true);
       try {
-        const res = await fetch("/api/race-timeline");
+        const url = selectedDataSource
+          ? `/api/race-timeline?folder=${encodeURIComponent(selectedDataSource)}`
+          : '/api/race-timeline';
+        const res = await fetch(url);
         if (!res.ok) throw new Error("Network error");
-        const data = (await res.json()) as RaceTimeline;
-        setTimeline(data);
+        const data = await res.json();
+
+        // Handle both old format (array) and new format (object with timeline + metadata)
+        if (Array.isArray(data)) {
+          setTimeline(data);
+          setRaceMetadata(null);
+        } else {
+          setTimeline(data.timeline);
+          setRaceMetadata(data.metadata || null);
+        }
       } catch (e) {
         console.error("Failed to load real timeline, falling back to mock:", e);
         setTimeline(getMockRaceTimeline());
+        setRaceMetadata(null);
       } finally {
         setLoading(false);
       }
     }
     load();
-  }, []);
+  }, [selectedDataSource]);
 
   // Compute timeline duration (safe to compute even when null)
   const totalDurationMs = timeline && timeline.length > 0 ? timeline[timeline.length - 1].timestampMs : 0;
@@ -112,7 +128,7 @@ export function DashboardPlaybackContainer() {
   const progressRatio = totalDurationMs > 0 ? currentTimeMs / totalDurationMs : 0;
 
   const dashboardData: DashboardData | undefined = currentFrame
-    ? mapFrameToDashboardData(currentFrame, focusedCarNumber, isPlaying, progressRatio)
+    ? mapFrameToDashboardData(currentFrame, focusedCarNumber, isPlaying, progressRatio, raceMetadata)
     : undefined;
 
   // ---------- EARLY RETURNS ONLY AFTER ALL HOOKS ----------
@@ -153,6 +169,12 @@ export function DashboardPlaybackContainer() {
 
   return (
     <div className="flex min-h-screen flex-col bg-black text-zinc-100">
+      {/* Data Source Sidebar */}
+      <DataSourceSidebar
+        currentSource={selectedDataSource}
+        onSourceSelect={setSelectedDataSource}
+      />
+
       <DashboardHeader {...header} />
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-6 py-6">
         <div className="mb-2 flex items-baseline justify-between gap-4">
@@ -161,7 +183,9 @@ export function DashboardPlaybackContainer() {
         </div>
         <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-12">
           <div className="lg:col-span-3 flex flex-col gap-4">
-            <RaceInfoPanel {...raceInfo} onDriverSelect={(car) => setFocusedCarNumber(car)} />
+            <div className="h-[60vh] flex flex-col">
+              <RaceInfoPanel {...raceInfo} onDriverSelect={(car) => setFocusedCarNumber(car)} />
+            </div>
             <DriverDNA focusedCarNumber={focusedCarNumber} />
           </div>
           <div className="lg:col-span-6">
@@ -226,16 +250,17 @@ function mapFrameToDashboardData(
   focusedCarNumber: number,
   isPlaying: boolean,
   overallProgressRatio: number,
+  raceMetadata: any
 ): DashboardData {
   const sorted = [...frame.drivers].sort((a, b) => a.position - b.position);
   const leader = sorted[0];
   const focused = sorted.find((d) => d.carNumber === focusedCarNumber) ?? leader;
 
   const header: DashboardHeaderProps = {
-    trackName: "",
+    trackName: raceMetadata?.trackName || raceMetadata?.raceName || "Unknown Track",
     races: [],
     activeRaceIndex: 0,
-    versionLabel: "",
+    versionLabel: raceMetadata?.folder ? `📁 ${raceMetadata.folder}` : "v1.0",
   };
 
   const raceInfo: RaceInfoPanelProps = {
@@ -253,7 +278,10 @@ function mapFrameToDashboardData(
   };
 
   const trackMap: TrackMapProps = {
-    cars: sorted.map(driverToMarker),
+    cars: sorted.map((d) => ({
+      ...driverToMarker(d),
+      highlight: d.carNumber === focusedCarNumber,
+    })),
     projectedPathClassName: undefined,
     showStartFinish: true,
     startFinishLabel: "S/F",

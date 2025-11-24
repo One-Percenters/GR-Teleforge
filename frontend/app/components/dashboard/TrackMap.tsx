@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 export type TrackCarMarker = {
   id: string;
   label: string;
+  highlight?: boolean;
   /** Tailwind positioning classes or any extra styling. */
   className?: string;
   /** Optional inline style if you prefer not to use Tailwind utility classes. */
@@ -47,6 +48,7 @@ export function TrackMap({
             <CarDot
               key={car.id}
               label={car.label}
+              highlight={car.highlight}
               className={car.className}
               style={car.style}
             />
@@ -66,21 +68,24 @@ export function TrackMap({
 
 function CarDot({
   label,
+  highlight,
   className,
   style,
 }: {
   label: string;
+  highlight?: boolean;
   className?: string;
   style?: CSSProperties;
 }) {
   return (
     <div
       style={style}
-      className={`absolute flex h-10 w-10 items-center justify-center rounded-full bg-red-600 text-sm font-semibold text-zinc-50 shadow-lg shadow-red-900/40 ${className ?? ""}`}
+      className={`absolute flex items-center justify-center rounded-full font-bold transition-all duration-300 ${highlight
+          ? "h-8 w-8 bg-red-600 text-white shadow-lg shadow-red-500/50 z-20 scale-110 ring-2 ring-white/20 text-xs"
+          : "h-5 w-5 bg-zinc-700 text-zinc-300 border border-zinc-600 z-10 text-[9px] opacity-90"
+        } ${className ?? ""}`}
     >
       {label}
     </div>
   );
 }
-
-
