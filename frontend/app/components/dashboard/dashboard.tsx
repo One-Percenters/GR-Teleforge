@@ -3,7 +3,13 @@
 import type { ReactNode } from "react";
 
 import Map from "./map";
-import { useTelemetry } from "./hooks";
+import {
+  type CarState,
+  type Standing,
+  type TelemetryStore,
+  useTelemetry,
+} from "./hooks";
+import { usePlaybackClient } from "../../hooks/usePlaybackClient";
 
 type CardProps = {
   title: string;
@@ -11,7 +17,7 @@ type CardProps = {
   className?: string;
 };
 
-type TelemetryState = ReturnType<typeof useTelemetry>;
+type TelemetryState = TelemetryStore;
 
 const Card = ({ title, children, className = "" }: CardProps) => (
   <section
@@ -48,8 +54,7 @@ const RaceSelector = () => (
 
 const RaceInfoCard = ({ telemetry }: { telemetry: TelemetryState }) => {
   const raceStats = [
-    { label: "Status", value: telemetry.status ?? "—" },
-    { label: "Lap", value: telemetry.lap ?? "—" },
+    { label: "Status", value: telemetry.raceStatus ?? "—" },
     { label: "Leader", value: telemetry.leader ?? "—" },
     { label: "Gap", value: telemetry.gap ?? "—" },
   ];
@@ -69,13 +74,41 @@ const RaceInfoCard = ({ telemetry }: { telemetry: TelemetryState }) => {
         {raceStats.map((stat) => (
           <StatRow key={stat.label} label={stat.label} value={stat.value} />
         ))}
+        {telemetry.latestWeather && (
+          <div className="mt-3 grid grid-cols-3 gap-3 rounded-2xl border border-border/40 bg-background/40 p-3 text-center text-xs uppercase tracking-[0.25em] text-muted-foreground">
+            <div>
+              Air
+              <p className="mt-1 text-base font-semibold text-foreground">
+                {telemetry.latestWeather.airTempC != null
+                  ? `${telemetry.latestWeather.airTempC.toFixed(1)}°C`
+                  : "—"}
+              </p>
+            </div>
+            <div>
+              Track
+              <p className="mt-1 text-base font-semibold text-foreground">
+                {telemetry.latestWeather.trackTempC != null
+                  ? `${telemetry.latestWeather.trackTempC.toFixed(1)}°C`
+                  : "—"}
+              </p>
+            </div>
+            <div>
+              Humidity
+              <p className="mt-1 text-base font-semibold text-foreground">
+                {telemetry.latestWeather.humidityPercent != null
+                  ? `${telemetry.latestWeather.humidityPercent.toFixed(0)}%`
+                  : "—"}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
       <div className="pt-3">
         <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
           Standings
         </p>
         <ul className="mt-3 space-y-2">
-          {standings.map((entry, index) => (
+          {standings.map((entry: Standing, index: number) => (
             <li
               key={`${entry.car ?? index}-${entry.position ?? index}`}
               className="flex items-center justify-between rounded-2xl border border-border/50 bg-background px-3 py-2 text-sm"
@@ -105,26 +138,38 @@ const MapPanel = () => (
   </div>
 );
 
-const TelemetryCard = ({ telemetry }: { telemetry: TelemetryState }) => {
-  const throttle = clampPercent(telemetry.ath);
-  const brake = clampPercent(telemetry.pbrake_f);
-  const steeringAngle = telemetry.Steering_Angle ?? 0;
+const TelemetryCard = ({
+  telemetry,
+  activeCar,
+}: {
+  telemetry: TelemetryState;
+  activeCar: CarState | null;
+}) => {
+  const throttle = clampPercent(activeCar?.speedKph ?? null);
+  const brake = clampPercent(null);
+  const steeringAngle = activeCar?.steeringAngle ?? 0;
 
   return (
     <Card title="Telemetry" className="space-y-4 lg:col-span-3">
       <div className="mt-2 space-y-3">
-        <StatRow label="Driver" value={telemetry.driverName ?? "—"} />
-        <StatRow label="Position" value={telemetry.positionLabel ?? "—"} />
+        <StatRow label="Driver" value={activeCar?.driverName ?? "—"} />
+        <StatRow label="Car" value={activeCar?.carNumber ?? "—"} />
         <StatRow
           label="Speed"
           value={
-            telemetry.speed != null ? `${telemetry.speed.toFixed(0)} mph` : "—"
+            activeCar?.speedKph != null
+              ? `${activeCar.speedKph.toFixed(0)} km/h`
+              : "—"
           }
         />
       </div>
 
-      <TelemetryBar label="Throttle" value={telemetry.ath} percent={throttle} />
-      <TelemetryBar label="Brake" value={telemetry.pbrake_f} percent={brake} />
+      <TelemetryBar
+        label="Throttle"
+        value={activeCar?.speedKph ?? null}
+        percent={throttle}
+      />
+      <TelemetryBar label="Brake" value={null} percent={brake} />
 
       <div className="pt-2 text-center">
         <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
@@ -134,8 +179,8 @@ const TelemetryCard = ({ telemetry }: { telemetry: TelemetryState }) => {
           <div className="absolute inset-6 rounded-full border border-border/30" />
           <div className="absolute inset-0 flex items-center justify-center">
             <span className="text-sm font-semibold text-foreground">
-              {telemetry.Steering_Angle != null
-                ? `${telemetry.Steering_Angle.toFixed(1)}°`
+              {activeCar?.steeringAngle != null
+                ? `${activeCar.steeringAngle.toFixed(1)}°`
                 : "—"}
             </span>
             <span
@@ -147,9 +192,9 @@ const TelemetryCard = ({ telemetry }: { telemetry: TelemetryState }) => {
           </div>
         </div>
         <p className="mt-3 text-xs uppercase tracking-[0.3em] text-muted-foreground">
-          RPM{" "}
+          Lap{" "}
           <span className="ml-2 text-base font-semibold text-foreground">
-            {telemetry.nmot != null ? telemetry.nmot.toFixed(0) : "—"}
+            {activeCar?.lap ?? "—"}
           </span>
         </p>
       </div>
@@ -184,12 +229,14 @@ const TelemetryBar = ({
   </div>
 );
 
-const LapTimelineCard = ({ telemetry }: { telemetry: TelemetryState }) => {
-  const lapPercent = clampPercent(
-    telemetry.Laptrigger_lapdist_dls != null
-      ? telemetry.Laptrigger_lapdist_dls
-      : 0
-  );
+const LapTimelineCard = ({
+  telemetry,
+  activeCar,
+}: {
+  telemetry: TelemetryState;
+  activeCar: CarState | null;
+}) => {
+  const lapPercent = clampPercent(activeCar?.lapDistanceMeters ?? null);
 
   return (
     <Card title="Lap Timeline">
@@ -200,7 +247,7 @@ const LapTimelineCard = ({ telemetry }: { telemetry: TelemetryState }) => {
         />
       </div>
       <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-        <span>Lap {telemetry.lap ?? "—"}</span>
+        <span>Lap {activeCar?.lap ?? "—"}</span>
         <span>{telemetry.gap ?? "—"}</span>
       </div>
     </Card>
@@ -261,7 +308,13 @@ const NextIcon = () => (
 );
 
 const Dashboard = () => {
+  usePlaybackClient("race1");
   const telemetry = useTelemetry();
+  const activeCarNumber =
+    telemetry.standings[0]?.car ?? Object.keys(telemetry.cars)[0] ?? null;
+  const activeCar = activeCarNumber
+    ? telemetry.cars[activeCarNumber] ?? null
+    : null;
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -271,12 +324,12 @@ const Dashboard = () => {
         <div className="grid gap-6 lg:grid-cols-12">
           <RaceInfoCard telemetry={telemetry} />
           <MapPanel />
-          <TelemetryCard telemetry={telemetry} />
+          <TelemetryCard telemetry={telemetry} activeCar={activeCar} />
         </div>
 
-        <LapTimelineCard telemetry={telemetry} />
+        <LapTimelineCard telemetry={telemetry} activeCar={activeCar} />
 
-        <PlaybackControls status={telemetry.status} />
+        <PlaybackControls status={telemetry.raceStatus} />
       </div>
     </main>
   );

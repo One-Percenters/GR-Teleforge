@@ -1,8 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { GeoJSON, MapContainer, TileLayer, useMap } from "react-leaflet";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  GeoJSON,
+  MapContainer,
+  Marker,
+  TileLayer,
+  useMap,
+} from "react-leaflet";
+// @ts-ignore - Leaflet types not available
+import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+
+import { useTelemetry } from "./hooks";
 
 type TrackFeatureCollection = {
   type: "FeatureCollection";
@@ -11,7 +21,7 @@ type TrackFeatureCollection = {
 
 const ZOOM_MIN = 13;
 const ZOOM_MAX = 20;
-const MAP_CENTER = [33.5326, -86.6194] as const; // roughly center of the circuit
+const MAP_CENTER = [33.5326, -86.6194] as const;
 
 const ZoomSync = ({ zoom }: { zoom: number }) => {
   const map = useMap();
@@ -34,10 +44,86 @@ const fetchTrack = async (): Promise<TrackFeatureCollection> => {
   return track;
 };
 
+const CarMarkersLayer = ({
+  markers,
+}: {
+  markers: Array<{
+    carNumber: string;
+    position: [number, number];
+    angle: number;
+  }>;
+}) => {
+  const map = useMap();
+  const markersRef = useRef<Record<string, any>>({});
+
+  useEffect(() => {
+    markers.forEach((marker) => {
+      let leafletMarker = markersRef.current[marker.carNumber];
+
+      if (!leafletMarker) {
+        const icon = L.divIcon({
+          className: "car-marker",
+          html: `<div style="
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ef4444;
+            border: 2px solid rgba(255,255,255,0.7);
+            box-shadow: 0 0 12px rgba(239,68,68,0.6);
+            transform: rotate(${marker.angle}deg);
+          "></div>`,
+          iconSize: [12, 12],
+          iconAnchor: [6, 6],
+        });
+        leafletMarker = L.marker(marker.position, { icon }).addTo(map);
+        markersRef.current[marker.carNumber] = leafletMarker;
+      } else {
+        const icon = L.divIcon({
+          className: "car-marker",
+          html: `<div style="
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ef4444;
+            border: 2px solid rgba(255,255,255,0.7);
+            box-shadow: 0 0 12px rgba(239,68,68,0.6);
+            transform: rotate(${marker.angle}deg);
+          "></div>`,
+          iconSize: [12, 12],
+          iconAnchor: [6, 6],
+        });
+        leafletMarker.setIcon(icon);
+        leafletMarker.setLatLng(marker.position);
+      }
+    });
+
+    // Remove markers that are no longer in the list
+    const currentCarNumbers = new Set(markers.map((m) => m.carNumber));
+    Object.keys(markersRef.current).forEach((carNumber) => {
+      if (!currentCarNumbers.has(carNumber)) {
+        map.removeLayer(markersRef.current[carNumber]);
+        delete markersRef.current[carNumber];
+      }
+    });
+  }, [markers, map]);
+
+  useEffect(() => {
+    return () => {
+      Object.values(markersRef.current).forEach((marker) => {
+        map.removeLayer(marker);
+      });
+      markersRef.current = {};
+    };
+  }, [map]);
+
+  return null;
+};
+
 export default function Map() {
   const [track, setTrack] = useState<TrackFeatureCollection | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [zoom, setZoom] = useState(16);
+  const telemetry = useTelemetry();
 
   useEffect(() => {
     let isMounted = true;
@@ -59,6 +145,19 @@ export default function Map() {
     };
   }, []);
 
+  const carMarkers = useMemo(() => {
+    return Object.values(telemetry.cars)
+      .filter((car) => car.vboxLat != null && car.vboxLon != null)
+      .map((car) => ({
+        carNumber: car.carNumber,
+        position: [car.vboxLat as number, car.vboxLon as number] as [
+          number,
+          number
+        ],
+        angle: car.steeringAngle ?? 0,
+      }));
+  }, [telemetry.cars]);
+
   if (error) {
     return (
       <div className="flex h-full min-h-112 w-full items-center justify-center rounded-3xl border border-border bg-card text-primary">
@@ -75,42 +174,15 @@ export default function Map() {
     );
   }
 
-  const handleZoomChange = (delta: number) => {
-    setZoom((prev) => {
-      const next = prev + delta;
-      return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, next));
-    });
-  };
-
   return (
     <div className="flex h-full min-h-112 flex-col rounded-3xl border border-border bg-card text-foreground shadow-[0_25px_65px_rgba(0,0,0,0.45)]">
       <div className="flex items-center justify-between border-b border-border/60 px-6 py-4">
         <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
           map
         </p>
-        <div className="flex items-center gap-3 text-xs uppercase tracking-[0.35em] text-muted-foreground">
-          {/* <span>zoom {zoom}</span> */}
-          <div className="flex overflow-hidden rounded-full border border-border/70 bg-background/60">
-            {/* <button
-              type="button"
-              onClick={() => handleZoomChange(-1)}
-              disabled={zoom <= ZOOM_MIN}
-              className="px-3 py-2 text-sm text-muted-foreground transition hover:bg-secondary disabled:opacity-40"
-              aria-label="Zoom out"
-            >
-              -
-            </button>
-            <button
-              type="button"
-              onClick={() => handleZoomChange(1)}
-              disabled={zoom >= ZOOM_MAX}
-              className="border-l border-border px-3 py-2 text-sm text-muted-foreground transition hover:bg-secondary disabled:opacity-40"
-              aria-label="Zoom in"
-            >
-              +
-            </button> */}
-          </div>
-        </div>
+        <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
+          racers: {carMarkers.length}
+        </p>
       </div>
 
       <div className="relative flex-1 rounded-b-3xl">
@@ -132,6 +204,7 @@ export default function Map() {
           <ZoomSync zoom={zoom} />
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           <GeoJSON data={track} />
+          <CarMarkersLayer markers={carMarkers} />
         </MapContainer>
         <div className="pointer-events-none absolute inset-4 rounded-3xl border border-white/5" />
       </div>

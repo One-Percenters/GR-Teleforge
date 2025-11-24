@@ -1,63 +1,100 @@
 import { create } from "zustand";
 
-type Standing = {
+export type CarState = {
+  carNumber: string;
+  driverName: string | null;
+  positionLabel: string | null;
+  lap: number | null;
+  sectorId: string | null;
+  vboxLon: number | null;
+  vboxLat: number | null;
+  steeringAngle: number | null;
+  speedKph: number | null;
+  lapDistanceMeters: number | null;
+};
+
+export type Standing = {
   car: string | null;
   driver: string | null;
   position: string | null;
 };
 
-type Telemetry = {
-  speed: number | null;
-  gear: string | null;
-  nmot: number | null;
-  ath: number | null;
-  aps: number | null;
-  pbrake_f: number | null;
-  pbrake_r: number | null;
-  accx_can: number | null;
-  accy_can: number | null;
-  Steering_Angle: number | null;
-  VBOX_Long_Minutes: number | null;
-  VBOX_Lat_Min: number | null;
-  Laptrigger_lapdist_dls: number | null;
-  driverName: string | null;
-  positionLabel: string | null;
-  status: string | null;
-  lap: string | null;
+export type TelemetryStore = {
+  session: "race1" | "race2";
+  raceStatus: string | null;
   leader: string | null;
   gap: string | null;
+  cars: Record<string, CarState>;
   standings: Standing[];
+  latestWeather: {
+    airTempC: number | null;
+    trackTempC: number | null;
+    humidityPercent: number | null;
+  } | null;
+  updateCar: (carNumber: string, updates: Partial<CarState>) => void;
+  setStandings: (standings: Standing[]) => void;
+  setRaceMeta: (payload: {
+    status?: string | null;
+    leader?: string | null;
+    gap?: string | null;
+  }) => void;
+  setWeather: (payload: TelemetryStore["latestWeather"]) => void;
+  reset: () => void;
 };
 
-type TelemetryStore = Telemetry & {
-  updateTelemetry: (partialTelemetry: Partial<Telemetry>) => void;
-};
-
-const initialTelemetry: Telemetry = {
-  speed: null,
-  gear: null,
-  nmot: null,
-  ath: null,
-  aps: null,
-  pbrake_f: null,
-  pbrake_r: null,
-  accx_can: null,
-  accy_can: null,
-  Steering_Angle: null,
-  VBOX_Long_Minutes: null,
-  VBOX_Lat_Min: null,
-  Laptrigger_lapdist_dls: null,
-  driverName: null,
-  positionLabel: null,
-  status: null,
-  lap: null,
+const initialState: TelemetryStore = {
+  session: "race1",
+  raceStatus: null,
   leader: null,
   gap: null,
+  cars: {},
   standings: [],
+  latestWeather: null,
+  updateCar: () => {},
+  setStandings: () => {},
+  setRaceMeta: () => {},
+  setWeather: () => {},
+  reset: () => {},
 };
 
 export const useTelemetry = create<TelemetryStore>((set) => ({
-  ...initialTelemetry,
-  updateTelemetry: (partialTelemetry) =>
-    set((state) => ({ ...state, ...partialTelemetry })),
+  ...initialState,
+  updateCar: (carNumber, updates) =>
+    set((state) => ({
+      ...state,
+      cars: {
+        ...state.cars,
+        [carNumber]: {
+          carNumber,
+          driverName: state.cars[carNumber]?.driverName ?? null,
+          positionLabel: state.cars[carNumber]?.positionLabel ?? null,
+          lap: state.cars[carNumber]?.lap ?? null,
+          sectorId: state.cars[carNumber]?.sectorId ?? null,
+          vboxLon: state.cars[carNumber]?.vboxLon ?? null,
+          vboxLat: state.cars[carNumber]?.vboxLat ?? null,
+          steeringAngle: state.cars[carNumber]?.steeringAngle ?? null,
+          speedKph: state.cars[carNumber]?.speedKph ?? null,
+          lapDistanceMeters: state.cars[carNumber]?.lapDistanceMeters ?? null,
+          ...updates,
+        },
+      },
+    })),
+  setStandings: (standings) =>
+    set((state) => ({
+      ...state,
+      standings,
+    })),
+  setRaceMeta: ({ status, leader, gap }) =>
+    set((state) => ({
+      ...state,
+      raceStatus: status ?? state.raceStatus,
+      leader: leader ?? state.leader,
+      gap: gap ?? state.gap,
+    })),
+  setWeather: (payload) =>
+    set((state) => ({
+      ...state,
+      latestWeather: payload,
+    })),
+  reset: () => set(() => ({ ...initialState })),
 }));
