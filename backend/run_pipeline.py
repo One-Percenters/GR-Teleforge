@@ -34,15 +34,14 @@ def run_full_pipeline():
     print("\n[STEP 3/5] Running Event Detection Logic (Overtake Filter)...")
     event_list = detect_critical_events(enhanced_df)
     
-    if not event_list:
-        print("Pipeline finished, but no Critical Events (Overtakes) were confirmed.")
-        return
+    if event_list:
+        # STEP 4: Causal Analysis & Root Cause Determination
+        print("\n[STEP 4/5] Running Causal Analysis & Root Cause Determination...")
+        run_causal_analysis(enhanced_df, event_list)
+    else:
+        print("No Critical Events detected - skipping causal analysis.")
 
-    # STEP 4: Causal Analysis & Root Cause Determination
-    print("\n[STEP 4/5] Running Causal Analysis & Root Cause Determination...")
-    run_causal_analysis(enhanced_df, event_list)
-    
-    # STEP 5: Frontend Data Export & Organization
+    # STEP 5: Frontend Data Export & Organization (ALWAYS RUN)
     print("\n[STEP 5/5] Exporting Frontend Data & Creating Visualization Structures...")
     export_all_frontend_data()
     

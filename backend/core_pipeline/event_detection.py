@@ -46,24 +46,37 @@ def detect_critical_events(df=None):
     
     # Process each race separately
     for (track, race), group in df.groupby(['Track', 'Race_Number']):
+        print(f"\n-- Processing {track}_{race} --")
         confirmed_events_race = []
         
-        # Estimate track length from max lap distance (handles lap rollover)
-        # Track length is typically the maximum distance value seen
-        track_length = group['Laptrigger_lapdist_dls'].max()
-        if pd.isna(track_length) or track_length < 1000:  # Sanity check
-            track_length = 5000  # Default fallback (5km track)
+        # Skip if no lap distance data for this track
+        if 'Laptrigger_lapdist_dls' not in group.columns:
+            print(f"  Skipping {track}_{race}: No lap distance data")
+            continue
         
-        # 1. Lap Distance Normalization: Normalize modulo track length to prevent false jumps at Start/Finish
-        # This handles cases where distance goes from 3999m to 5m (lap rollover)
+        # Filter out rows with missing lap distance
+        group = group[group['Laptrigger_lapdist_dls'].notna()].copy()
+        if len(group) < 100:
+            print(f"  Skipping {track}_{race}: Insufficient lap distance data ({len(group)} rows)")
+            continue
+        
+        # Estimate track length from max lap distance (handles lap rollover)
+        track_length = group['Laptrigger_lapdist_dls'].max()
+        if pd.isna(track_length) or track_length < 1000:
+            print(f"  Skipping {track}_{race}: Invalid track length ({track_length})")
+            continue
+        
+        # 1. Lap Distance Normalization
         group['LapDist_Normalized'] = group['Laptrigger_lapdist_dls'] % track_length
         
         # 2. Prepare for position tracking
         group = group.sort_values(by='Time')
         group['Time_Group'] = group['Time'].astype(str)
         
-        # Calculate position based on normalized lap distance (further = better position)
-        group['Current_Position'] = group.groupby('Time_Group')['LapDist_Normalized'].rank(method='first', ascending=False).astype(int)
+        # Calculate position - handle any remaining NaN by filling with 0
+        group['LapDist_Normalized'] = group['LapDist_Normalized'].fillna(0)
+        rank_result = group.groupby('Time_Group')['LapDist_Normalized'].rank(method='first', ascending=False)
+        group['Current_Position'] = rank_result.fillna(1).astype(int)
         
         # Track previous position and distance per vehicle
         group['Prev_Position'] = group.groupby('Vehicle_ID')['Current_Position'].shift(1)
@@ -136,6 +149,9 @@ def detect_critical_events(df=None):
             with open(file_name, 'w') as f:
                 json.dump(confirmed_events_race, f, indent=4)
             all_confirmed_events.extend(confirmed_events_race)
-            print(f"Confirmed {len(confirmed_events_race)} Critical Events for {track}_{race}.")
+            print(f"  -> Confirmed {len(confirmed_events_race)} Critical Events for {track}_{race}.")
+        else:
+            print(f"  -> No confirmed events for {track}_{race}.")
 
+    print(f"\nTotal confirmed events across all races: {len(all_confirmed_events)}")
     return all_confirmed_events

@@ -130,12 +130,14 @@ def automated_critical_sector_discovery(df=None):
         track_df['Sector_Start'] = (is_critical) & (~is_critical.shift(1, fill_value=False))
         track_df['Sector_Block_ID'] = track_df['Sector_Start'].cumsum()
         
+        # Initialize Sector_ID based on Track_Section
+        track_df['Sector_ID'] = track_df['Track_Section'].copy()
+        
         critical_sections = track_df[is_critical].copy()
         if not critical_sections.empty:
             critical_sections['Sector_ID'] = 'S_' + (critical_sections['Sector_Block_ID']).astype(str).str.zfill(3)
-            track_df = track_df.merge(critical_sections[['Sector_ID']], left_index=True, right_index=True, how='left')
-        
-        track_df['Sector_ID'] = track_df['Sector_ID'].fillna(track_df['Track_Section'])
+            # Use boolean mask to assign values (handles duplicate indices)
+            track_df.loc[is_critical, 'Sector_ID'] = critical_sections['Sector_ID'].values
         
         track_df = track_df.drop(columns=['Lat_Smoothed', 'Long_Smoothed', 'Next_Lat', 'Next_Long', 
                                           'Heading', 'Sector_Start', 'Sector_Block_ID', 'Track_Section'])

@@ -1,0 +1,677 @@
+{
+  "GR86-002-000": {
+    "Vehicle_ID": "GR86-002-000",
+    "Races": [
+      "Barber_R1",
+      "Barber_R2",
+      "Indianapolis_R1",
+      "Indianapolis_R2"
+    ]
+  },
+  "GR86-004-78": {
+    "Vehicle_ID": "GR86-004-78",
+    "Races": [
+      "Barber_R1",
+      "Barber_R2",
+      "COTA_R1",
+      "COTA_R2",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2"
+    ]
+  },
+  "GR86-006-7": {
+    "Vehicle_ID": "GR86-006-7",
+    "Races": [
+      "Barber_R1",
+      "Barber_R2",
+      "COTA_R1",
+      "COTA_R2",
+      "Indianapolis_R1",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2",
+      "Sebring_R1",
+      "Sebring_R2",
+      "VIR_R1",
+      "VIR_R2"
+    ]
+  },
+  "GR86-010-16": {
+    "Vehicle_ID": "GR86-010-16",
+    "Races": [
+      "Barber_R1",
+      "Barber_R2",
+      "COTA_R1",
+      "COTA_R2",
+      "Indianapolis_R1",
+      "Indianapolis_R2",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2",
+      "Sebring_R1",
+      "Sebring_R2"
+    ]
+  },
+  "GR86-013-80": {
+    "Vehicle_ID": "GR86-013-80",
+    "Races": [
+      "Barber_R1",
+      "Barber_R2",
+      "COTA_R1",
+      "COTA_R2",
+      "Indianapolis_R1",
+      "Indianapolis_R2",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2",
+      "Sebring_R1",
+      "Sebring_R2",
+      "VIR_R1",
+      "VIR_R2"
+    ]
+  },
+  "GR86-015-31": {
+    "Vehicle_ID": "GR86-015-31",
+    "Races": [
+      "Barber_R1",
+      "Barber_R2",
+      "COTA_R1",
+      "COTA_R2",
+      "Indianapolis_R1",
+      "Indianapolis_R2",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2",
+      "Sebring_R1",
+      "Sebring_R2",
+      "VIR_R1",
+      "VIR_R2"
+    ]
+  },
+  "GR86-016-55": {
+    "Vehicle_ID": "GR86-016-55",
+    "Races": [
+      "Barber_R1",
+      "Barber_R2",
+      "COTA_R1",
+      "COTA_R2",
+      "Indianapolis_R1",
+      "Indianapolis_R2",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2",
+      "Sebring_R1",
+      "Sebring_R2",
+      "VIR_R1",
+      "VIR_R2"
+    ]
+  },
+  "GR86-022-13": {
+    "Vehicle_ID": "GR86-022-13",
+    "Races": [
+      "Barber_R1",
+      "Barber_R2",
+      "COTA_R1",
+      "COTA_R2",
+      "Indianapolis_R1",
+      "Indianapolis_R2",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2",
+      "Sebring_R1",
+      "Sebring_R2",
+      "VIR_R1",
+      "VIR_R2"
+    ]
+  },
+  "GR86-025-47": {
+    "Vehicle_ID": "GR86-025-47",
+    "Races": [
+      "Barber_R1",
+      "Barber_R2",
+      "COTA_R1",
+      "COTA_R2",
+      "Indianapolis_R1",
+      "Indianapolis_R2",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2",
+      "Sebring_R1",
+      "Sebring_R2"
+    ]
+  },
+  "GR86-026-72": {
+    "Vehicle_ID": "GR86-026-72",
+    "Races": [
+      "Barber_R1",
+      "Barber_R2",
+      "COTA_R1",
+      "COTA_R2",
+      "Indianapolis_R1",
+      "Indianapolis_R2",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2",
+      "Sebring_R1",
+      "Sebring_R2",
+      "VIR_R1",
+      "VIR_R2"
+    ]
+  },
+  "GR86-030-18": {
+    "Vehicle_ID": "GR86-030-18",
+    "Races": [
+      "Barber_R1",
+      "Barber_R2",
+      "COTA_R1",
+      "COTA_R2",
+      "Indianapolis_R1",
+      "Indianapolis_R2",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2"
+    ]
+  },
+  "GR86-033-46": {
+    "Vehicle_ID": "GR86-033-46",
+    "Races": [
+      "Barber_R1",
+      "Barber_R2",
+      "COTA_R1",
+      "COTA_R2",
+      "Indianapolis_R1",
+      "Indianapolis_R2",
+      "Sebring_R1",
+      "Sebring_R2",
+      "VIR_R1",
+      "VIR_R2"
+    ]
+  },
+  "GR86-036-98": {
+    "Vehicle_ID": "GR86-036-98",
+    "Races": [
+      "Barber_R1",
+      "Barber_R2",
+      "COTA_R1",
+      "COTA_R2",
+      "Indianapolis_R1",
+      "Indianapolis_R2",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2",
+      "Sebring_R1",
+      "Sebring_R2",
+      "VIR_R1",
+      "VIR_R2"
+    ]
+  },
+  "GR86-038-93": {
+    "Vehicle_ID": "GR86-038-93",
+    "Races": [
+      "Barber_R1",
+      "Barber_R2",
+      "COTA_R1",
+      "COTA_R2",
+      "Indianapolis_R1",
+      "Indianapolis_R2",
+      "VIR_R1",
+      "VIR_R2"
+    ]
+  },
+  "GR86-040-3": {
+    "Vehicle_ID": "GR86-040-3",
+    "Races": [
+      "Barber_R1",
+      "Barber_R2",
+      "COTA_R1",
+      "COTA_R2",
+      "Indianapolis_R1",
+      "Indianapolis_R2",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2",
+      "Sebring_R1",
+      "Sebring_R2",
+      "VIR_R1",
+      "VIR_R2"
+    ]
+  },
+  "GR86-047-21": {
+    "Vehicle_ID": "GR86-047-21",
+    "Races": [
+      "Barber_R1",
+      "Barber_R2",
+      "COTA_R1",
+      "COTA_R2",
+      "Indianapolis_R1",
+      "Indianapolis_R2",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2",
+      "Sebring_R1",
+      "Sebring_R2",
+      "VIR_R1",
+      "VIR_R2"
+    ]
+  },
+  "GR86-049-88": {
+    "Vehicle_ID": "GR86-049-88",
+    "Races": [
+      "Barber_R1",
+      "Barber_R2",
+      "COTA_R1",
+      "COTA_R2",
+      "Indianapolis_R1",
+      "Indianapolis_R2",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2",
+      "Sebring_R1",
+      "Sebring_R2",
+      "VIR_R1",
+      "VIR_R2"
+    ]
+  },
+  "GR86-060-2": {
+    "Vehicle_ID": "GR86-060-2",
+    "Races": [
+      "Barber_R1",
+      "Barber_R2",
+      "Indianapolis_R1",
+      "Indianapolis_R2"
+    ]
+  },
+  "GR86-063-113": {
+    "Vehicle_ID": "GR86-063-113",
+    "Races": [
+      "Barber_R1",
+      "Barber_R2",
+      "COTA_R1",
+      "COTA_R2",
+      "Indianapolis_R1",
+      "Indianapolis_R2",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2",
+      "Sebring_R1",
+      "Sebring_R2",
+      "VIR_R1",
+      "VIR_R2"
+    ]
+  },
+  "GR86-065-5": {
+    "Vehicle_ID": "GR86-065-5",
+    "Races": [
+      "Barber_R1",
+      "Barber_R2",
+      "COTA_R1",
+      "COTA_R2",
+      "Indianapolis_R1",
+      "Indianapolis_R2",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2",
+      "Sebring_R1",
+      "Sebring_R2",
+      "VIR_R1",
+      "VIR_R2"
+    ]
+  },
+  "GR86-002-2": {
+    "Vehicle_ID": "GR86-002-2",
+    "Races": [
+      "COTA_R1",
+      "COTA_R2",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2",
+      "VIR_R1",
+      "VIR_R2"
+    ]
+  },
+  "GR86-012-8": {
+    "Vehicle_ID": "GR86-012-8",
+    "Races": [
+      "COTA_R1",
+      "COTA_R2",
+      "Indianapolis_R1",
+      "Indianapolis_R2",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2"
+    ]
+  },
+  "GR86-021-86": {
+    "Vehicle_ID": "GR86-021-86",
+    "Races": [
+      "COTA_R1",
+      "COTA_R2",
+      "Indianapolis_R1",
+      "Indianapolis_R2",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2"
+    ]
+  },
+  "GR86-024-41": {
+    "Vehicle_ID": "GR86-024-41",
+    "Races": [
+      "COTA_R1",
+      "COTA_R2",
+      "Indianapolis_R2",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2",
+      "Sebring_R1",
+      "Sebring_R2",
+      "VIR_R1",
+      "VIR_R2"
+    ]
+  },
+  "GR86-028-89": {
+    "Vehicle_ID": "GR86-028-89",
+    "Races": [
+      "COTA_R1",
+      "COTA_R2",
+      "Indianapolis_R1",
+      "Indianapolis_R2",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2",
+      "VIR_R1",
+      "VIR_R2"
+    ]
+  },
+  "GR86-029-14": {
+    "Vehicle_ID": "GR86-029-14",
+    "Races": [
+      "COTA_R1",
+      "COTA_R2"
+    ]
+  },
+  "GR86-032-15": {
+    "Vehicle_ID": "GR86-032-15",
+    "Races": [
+      "COTA_R1",
+      "COTA_R2",
+      "RoadAmerica_R1",
+      "Sebring_R1",
+      "Sebring_R2",
+      "VIR_R1",
+      "VIR_R2"
+    ]
+  },
+  "GR86-035-11": {
+    "Vehicle_ID": "GR86-035-11",
+    "Races": [
+      "COTA_R1",
+      "COTA_R2",
+      "Indianapolis_R1",
+      "Indianapolis_R2",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2",
+      "Sebring_R1",
+      "Sebring_R2"
+    ]
+  },
+  "GR86-037-03": {
+    "Vehicle_ID": "GR86-037-03",
+    "Races": [
+      "COTA_R1",
+      "COTA_R2",
+      "Indianapolis_R1",
+      "Indianapolis_R2",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2"
+    ]
+  },
+  "GR86-041-73": {
+    "Vehicle_ID": "GR86-041-73",
+    "Races": [
+      "COTA_R1",
+      "COTA_R2"
+    ]
+  },
+  "GR86-051-71": {
+    "Vehicle_ID": "GR86-051-71",
+    "Races": [
+      "COTA_R1",
+      "COTA_R2",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2",
+      "Sebring_R1",
+      "Sebring_R2",
+      "VIR_R1",
+      "VIR_R2"
+    ]
+  },
+  "GR86-057-57": {
+    "Vehicle_ID": "GR86-057-57",
+    "Races": [
+      "COTA_R1",
+      "COTA_R2",
+      "Indianapolis_R1",
+      "Indianapolis_R2",
+      "RoadAmerica_R1",
+      "RoadAmerica_R2"
+    ]
+  },
+  "GR86-061-51": {
+    "Vehicle_ID": "GR86-061-51",
+    "Races": [
+      "COTA_R1",
+      "COTA_R2",
+      "Sebring_R1",
+      "Sebring_R2",
+      "VIR_R1",
+      "VIR_R2"
+    ]
+  },
+  "GR86-062-012": {
+    "Vehicle_ID": "GR86-062-012",
+    "Races": [
+      "RoadAmerica_R1",
+      "RoadAmerica_R2",
+      "Sonoma_R1",
+      "Sonoma_R2",
+      "VIR_R1",
+      "VIR_R2"
+    ]
+  },
+  "GR86-060-031": {
+    "Vehicle_ID": "GR86-060-031",
+    "Races": [
+      "Sebring_R1",
+      "Sebring_R2"
+    ]
+  },
+  "GR86-002-002": {
+    "Vehicle_ID": "GR86-002-002",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-003-017": {
+    "Vehicle_ID": "GR86-003-017",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-004-078": {
+    "Vehicle_ID": "GR86-004-078",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-006-007": {
+    "Vehicle_ID": "GR86-006-007",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-008-113": {
+    "Vehicle_ID": "GR86-008-113",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-009-005": {
+    "Vehicle_ID": "GR86-009-005",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-010-016": {
+    "Vehicle_ID": "GR86-010-016",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-013-080": {
+    "Vehicle_ID": "GR86-013-080",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-015-031": {
+    "Vehicle_ID": "GR86-015-031",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-016-055": {
+    "Vehicle_ID": "GR86-016-055",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-017-067": {
+    "Vehicle_ID": "GR86-017-067",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-022-013": {
+    "Vehicle_ID": "GR86-022-013",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-024-041": {
+    "Vehicle_ID": "GR86-024-041",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-025-047": {
+    "Vehicle_ID": "GR86-025-047",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-026-072": {
+    "Vehicle_ID": "GR86-026-072",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-028-089": {
+    "Vehicle_ID": "GR86-028-089",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-029-014": {
+    "Vehicle_ID": "GR86-029-014",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-032-015": {
+    "Vehicle_ID": "GR86-032-015",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-033-046": {
+    "Vehicle_ID": "GR86-033-046",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-035-011": {
+    "Vehicle_ID": "GR86-035-011",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-036-098": {
+    "Vehicle_ID": "GR86-036-098",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-037-003": {
+    "Vehicle_ID": "GR86-037-003",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-038-093": {
+    "Vehicle_ID": "GR86-038-093",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-041-073": {
+    "Vehicle_ID": "GR86-041-073",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-047-021": {
+    "Vehicle_ID": "GR86-047-021",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-049-088": {
+    "Vehicle_ID": "GR86-049-088",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-050-050": {
+    "Vehicle_ID": "GR86-050-050",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-051-071": {
+    "Vehicle_ID": "GR86-051-071",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-061-051": {
+    "Vehicle_ID": "GR86-061-051",
+    "Races": [
+      "Sonoma_R1",
+      "Sonoma_R2"
+    ]
+  },
+  "GR86-040-003": {
+    "Vehicle_ID": "GR86-040-003",
+    "Races": [
+      "Sonoma_R2"
+    ]
+  }
+}

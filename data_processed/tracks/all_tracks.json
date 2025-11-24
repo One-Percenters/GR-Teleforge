@@ -1,0 +1,51 @@
+{
+  "Barber": {
+    "lat_min": 33.52,
+    "lat_max": 33.54,
+    "long_min": -86.63,
+    "long_max": -86.61,
+    "has_events": true
+  },
+  "Indianapolis": {
+    "lat_min": 39.78,
+    "lat_max": 39.8,
+    "long_min": -86.24,
+    "long_max": -86.22,
+    "has_events": true
+  },
+  "COTA": {
+    "lat_min": 30.13,
+    "lat_max": 30.14,
+    "long_min": -97.64,
+    "long_max": -97.63,
+    "has_events": false
+  },
+  "Sonoma": {
+    "lat_min": 38.16,
+    "lat_max": 38.17,
+    "long_min": -122.46,
+    "long_max": -122.45,
+    "has_events": false
+  },
+  "Sebring": {
+    "lat_min": 27.45,
+    "lat_max": 27.46,
+    "long_min": -81.35,
+    "long_max": -81.34,
+    "has_events": false
+  },
+  "VIR": {
+    "lat_min": 36.55,
+    "lat_max": 36.56,
+    "long_min": -79.21,
+    "long_max": -79.2,
+    "has_events": false
+  },
+  "RoadAmerica": {
+    "lat_min": 43.79,
+    "lat_max": 43.8,
+    "long_min": -87.99,
+    "long_max": -87.98,
+    "has_events": false
+  }
+}

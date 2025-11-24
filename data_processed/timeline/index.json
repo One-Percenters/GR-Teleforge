@@ -1,0 +1,34 @@
+{
+  "total_rows": 4798609,
+  "tracks": [
+    "Barber",
+    "Indianapolis",
+    "COTA",
+    "Sonoma",
+    "Sebring",
+    "VIR",
+    "RoadAmerica"
+  ],
+  "races_with_events": [
+    "Barber_R1",
+    "Barber_R2",
+    "Indianapolis_R1",
+    "Indianapolis_R2"
+  ],
+  "all_races": [
+    "Barber_R1",
+    "Barber_R2",
+    "COTA_R1",
+    "COTA_R2",
+    "Indianapolis_R1",
+    "Indianapolis_R2",
+    "RoadAmerica_R1",
+    "RoadAmerica_R2",
+    "Sebring_R1",
+    "Sebring_R2",
+    "Sonoma_R1",
+    "Sonoma_R2",
+    "VIR_R1",
+    "VIR_R2"
+  ]
+}

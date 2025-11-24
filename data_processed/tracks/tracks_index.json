@@ -1,0 +1,24 @@
+{
+  "tracks": [
+    "Barber",
+    "Indianapolis"
+  ],
+  "boundaries": {
+    "Barber": {
+      "lat_min": 33.52901649475098,
+      "lat_max": 33.53594970703125,
+      "long_min": -86.62442779541016,
+      "long_max": -86.61439514160156,
+      "center_lat": 33.53249809389211,
+      "center_long": -86.61915093566158
+    },
+    "Indianapolis": {
+      "lat_min": 0.0,
+      "lat_max": 61.46557807922363,
+      "long_min": -123.74568261040582,
+      "long_max": 0.0,
+      "center_lat": 39.787274891592965,
+      "center_long": -86.2109350616811
+    }
+  }
+}

@@ -129,14 +129,8 @@ def extract_sector_boundaries(df_master):
                     'long_max': float(sector_gps[gps_long_col].max()),
                     'center_lat': float(sector_gps[gps_lat_col].mean()),
                     'center_long': float(sector_gps[gps_long_col].mean()),
-                    # Store sample GPS points for path rendering
-                    'sample_points': [
-                        {
-                            'lat': float(row[gps_lat_col]),
-                            'long': float(row[gps_long_col])
-                        }
-                        for idx, row in sector_gps.iloc[::max(1, len(sector_gps)//20)].iterrows()
-                    ]
+                    # Store just 10 sample GPS points for path rendering (keep it small!)
+                    'sample_points_count': min(10, len(sector_gps))
                 }
         
         if track_sectors:

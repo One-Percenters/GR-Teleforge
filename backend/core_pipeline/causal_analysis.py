@@ -55,20 +55,27 @@ def run_causal_analysis(df_master=None, event_list=None):
             continue
         
         # Define a window around the event for localized analysis (+/- 1.5 seconds)
+        # Ensure timezone compatibility
+        if event_time.tzinfo is None and df_master.index.tz is not None:
+            event_time = event_time.tz_localize(df_master.index.tz)
+        elif event_time.tzinfo is not None and df_master.index.tz is None:
+            event_time = event_time.tz_localize(None)
+            
         analysis_window_start = event_time - pd.Timedelta(seconds=1.5)
         analysis_window_end = event_time + pd.Timedelta(seconds=1.5)
         
-        # Slice data for the Winner and Loser in the analysis window
-        # Filter by Vehicle_ID and ensure we're in the same sector
-        winner_data = df_master[
-            (df_master['Vehicle_ID'].astype(str) == winner_id) &
-            (df_master['Sector_ID'] == sector_id)
-        ].loc[analysis_window_start:analysis_window_end]
+        # Filter by Vehicle_ID and sector, then slice by time
+        winner_mask = (df_master['Vehicle_ID'].astype(str) == winner_id) & (df_master['Sector_ID'] == sector_id)
+        loser_mask = (df_master['Vehicle_ID'].astype(str) == loser_id) & (df_master['Sector_ID'] == sector_id)
         
-        loser_data = df_master[
-            (df_master['Vehicle_ID'].astype(str) == loser_id) &
-            (df_master['Sector_ID'] == sector_id)
-        ].loc[analysis_window_start:analysis_window_end]
+        winner_data = df_master[winner_mask]
+        loser_data = df_master[loser_mask]
+        
+        # Time-based filtering using boolean mask instead of .loc slicing
+        if not winner_data.empty:
+            winner_data = winner_data[(winner_data.index >= analysis_window_start) & (winner_data.index <= analysis_window_end)]
+        if not loser_data.empty:
+            loser_data = loser_data[(loser_data.index >= analysis_window_start) & (loser_data.index <= analysis_window_end)]
 
         if winner_data.empty or loser_data.empty:
             # Cannot compare inputs if data is missing
