@@ -20,13 +20,36 @@ interface TrackCanvasProps {
   onEventTrigger: (event: ProcessedEvent) => void;
 }
 
-// Driver colors
 const COLORS = [
   '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
   '#22c55e', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6',
   '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899',
   '#f43f5e', '#78716c', '#71717a', '#64748b', '#475569'
 ];
+
+// Smooth curve through points using Catmull-Rom spline
+function catmullRomSpline(points: {x: number, y: number}[], tension = 0.5): string {
+  if (points.length < 2) return '';
+  
+  const result: string[] = [];
+  result.push(`M ${points[0].x} ${points[0].y}`);
+  
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i === 0 ? points.length - 1 : i - 1];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[i + 2 >= points.length ? (i + 2) % points.length : i + 2];
+    
+    const cp1x = p1.x + (p2.x - p0.x) / 6 * tension;
+    const cp1y = p1.y + (p2.y - p0.y) / 6 * tension;
+    const cp2x = p2.x - (p3.x - p1.x) / 6 * tension;
+    const cp2y = p2.y - (p3.y - p1.y) / 6 * tension;
+    
+    result.push(`C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`);
+  }
+  
+  return result.join(' ');
+}
 
 export function TrackCanvas({
   trackData,
@@ -49,44 +72,82 @@ export function TrackCanvas({
   const timeRef = useRef<number>(0);
   const lastFrameRef = useRef<number>(0);
   const triggeredEventsRef = useRef<Set<string>>(new Set());
+  const trackPathRef = useRef<Path2D | null>(null);
+  const scaledPointsRef = useRef<{x: number, y: number}[]>([]);
   
-  const RACE_DURATION = 45 * 60 * 1000; // 45 minutes
+  const RACE_DURATION = 45 * 60 * 1000;
   const TOTAL_LAPS = 15;
 
-  // Convert GPS to canvas coordinates
-  const gpsToCanvas = useCallback((long: number, lat: number, width: number, height: number, offsetX: number) => {
+  // Calculate view bounds based on panels
+  const getViewBounds = useCallback((width: number, height: number) => {
+    const leftOffset = leftPanelOpen ? 320 : 0;
+    const rightOffset = rightPanelOpen ? 380 : 0;
+    return {
+      left: leftOffset,
+      right: width - rightOffset,
+      width: width - leftOffset - rightOffset,
+      height: height
+    };
+  }, [leftPanelOpen, rightPanelOpen]);
+
+  // Convert GPS to canvas coordinates with smooth scaling
+  const gpsToCanvas = useCallback((long: number, lat: number, viewBounds: ReturnType<typeof getViewBounds>) => {
     const { bounds } = trackData;
-    const padding = 60;
+    const padding = 80;
     
     const rangeX = bounds.long_max - bounds.long_min;
     const rangeY = bounds.lat_max - bounds.lat_min;
     
-    const availWidth = width - 2 * padding - offsetX;
-    const availHeight = height - 2 * padding;
+    const availWidth = viewBounds.width - 2 * padding;
+    const availHeight = viewBounds.height - 2 * padding;
     
     const scaleX = availWidth / rangeX;
     const scaleY = availHeight / rangeY;
     const scale = Math.min(scaleX, scaleY);
     
-    const centerOffsetX = (availWidth - rangeX * scale) / 2;
-    const centerOffsetY = (availHeight - rangeY * scale) / 2;
+    const centerX = viewBounds.left + viewBounds.width / 2;
+    const centerY = viewBounds.height / 2;
     
-    const x = padding + offsetX + centerOffsetX + (long - bounds.long_min) * scale;
-    const y = padding + centerOffsetY + (bounds.lat_max - lat) * scale;
+    const x = centerX + (long - (bounds.long_min + rangeX / 2)) * scale;
+    const y = centerY - (lat - (bounds.lat_min + rangeY / 2)) * scale;
     
     return { x, y };
   }, [trackData]);
 
-  // Get position on track
-  const getTrackPosition = useCallback((progress: number, width: number, height: number, offsetX: number) => {
-    const len = trackData.path.length;
-    if (len === 0) return { x: width / 2, y: height / 2 };
-    const idx = Math.floor((progress % 1) * len);
-    const point = trackData.path[idx];
-    return gpsToCanvas(point[0], point[1], width, height, offsetX);
+  // Build smooth track path
+  const buildTrackPath = useCallback((ctx: CanvasRenderingContext2D, viewBounds: ReturnType<typeof getViewBounds>) => {
+    const points = trackData.path.map(p => gpsToCanvas(p[0], p[1], viewBounds));
+    scaledPointsRef.current = points;
+    
+    // Sample every nth point for smoother rendering
+    const sampledPoints = points.filter((_, i) => i % 3 === 0 || i === points.length - 1);
+    
+    const pathString = catmullRomSpline(sampledPoints, 1);
+    trackPathRef.current = new Path2D(pathString + ' Z');
+    
+    return trackPathRef.current;
   }, [trackData, gpsToCanvas]);
 
-  // Main render loop - 60fps
+  // Get position along track
+  const getTrackPosition = useCallback((progress: number) => {
+    const points = scaledPointsRef.current;
+    if (points.length === 0) return { x: 0, y: 0 };
+    
+    const totalLen = points.length;
+    const idx = Math.floor((progress % 1) * totalLen);
+    const nextIdx = (idx + 1) % totalLen;
+    const t = (progress * totalLen) % 1;
+    
+    const p1 = points[idx];
+    const p2 = points[nextIdx];
+    
+    return {
+      x: p1.x + (p2.x - p1.x) * t,
+      y: p1.y + (p2.y - p1.y) * t
+    };
+  }, []);
+
+  // Main render loop
   const render = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -98,7 +159,6 @@ export function TrackCanvas({
     const delta = lastFrameRef.current ? now - lastFrameRef.current : 16.67;
     lastFrameRef.current = now;
 
-    // Update time if playing
     if (isPlaying) {
       timeRef.current += delta * playbackSpeed;
       if (timeRef.current >= RACE_DURATION) {
@@ -111,132 +171,125 @@ export function TrackCanvas({
     const progress = currentTime / RACE_DURATION;
     const currentLap = Math.min(TOTAL_LAPS, Math.floor(progress * TOTAL_LAPS) + 1);
 
-    // Notify parent of time update (throttled)
     if (Math.floor(currentTime / 100) !== Math.floor((currentTime - delta) / 100)) {
       onTimeUpdate(currentTime, currentLap);
     }
 
-    // Calculate offsets based on panels
-    const leftOffset = leftPanelOpen ? 320 : 0;
-    const rightOffset = rightPanelOpen ? 380 : 0;
-    
     const width = canvas.width;
     const height = canvas.height;
+    const viewBounds = getViewBounds(width, height);
 
-    // Clear canvas
-    ctx.fillStyle = '#080808';
+    // Clear
+    ctx.fillStyle = '#0a0a0a';
     ctx.fillRect(0, 0, width, height);
 
-    // Draw grid
-    ctx.strokeStyle = '#151515';
+    // Grid pattern
+    ctx.strokeStyle = '#141414';
     ctx.lineWidth = 1;
-    const gridSize = 50;
-    for (let x = leftOffset; x < width - rightOffset; x += gridSize) {
-      ctx.beginPath();
+    const gridSize = 40;
+    
+    ctx.beginPath();
+    for (let x = viewBounds.left; x < viewBounds.right; x += gridSize) {
       ctx.moveTo(x, 0);
       ctx.lineTo(x, height);
-      ctx.stroke();
     }
     for (let y = 0; y < height; y += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(leftOffset, y);
-      ctx.lineTo(width - rightOffset, y);
-      ctx.stroke();
+      ctx.moveTo(viewBounds.left, y);
+      ctx.lineTo(viewBounds.right, y);
     }
+    ctx.stroke();
 
-    // Draw track
-    if (trackData.path.length > 0) {
-      // Track glow
-      ctx.beginPath();
-      trackData.path.forEach((point, i) => {
-        const pos = gpsToCanvas(point[0], point[1], width, height, leftOffset);
-        if (i === 0) ctx.moveTo(pos.x, pos.y);
-        else ctx.lineTo(pos.x, pos.y);
-      });
-      ctx.closePath();
-      ctx.strokeStyle = 'rgba(215, 25, 33, 0.3)';
-      ctx.lineWidth = 24;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.stroke();
+    // Build/update track path
+    const trackPath = buildTrackPath(ctx, viewBounds);
 
-      // Track surface
-      ctx.beginPath();
-      trackData.path.forEach((point, i) => {
-        const pos = gpsToCanvas(point[0], point[1], width, height, leftOffset);
-        if (i === 0) ctx.moveTo(pos.x, pos.y);
-        else ctx.lineTo(pos.x, pos.y);
-      });
-      ctx.closePath();
-      ctx.strokeStyle = '#1a1a1a';
-      ctx.lineWidth = 18;
-      ctx.stroke();
+    // Track glow
+    ctx.save();
+    ctx.shadowColor = '#D71921';
+    ctx.shadowBlur = 30;
+    ctx.strokeStyle = 'rgba(215, 25, 33, 0.4)';
+    ctx.lineWidth = 28;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke(trackPath);
+    ctx.restore();
 
-      // Track center line
-      ctx.beginPath();
-      trackData.path.forEach((point, i) => {
-        const pos = gpsToCanvas(point[0], point[1], width, height, leftOffset);
-        if (i === 0) ctx.moveTo(pos.x, pos.y);
-        else ctx.lineTo(pos.x, pos.y);
-      });
-      ctx.closePath();
-      ctx.strokeStyle = '#333';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([6, 6]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
+    // Track surface
+    ctx.strokeStyle = '#1c1c1c';
+    ctx.lineWidth = 22;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke(trackPath);
 
-    // Draw event markers
-    events.slice(0, 30).forEach((event, idx) => {
+    // Track edge
+    ctx.strokeStyle = '#2a2a2a';
+    ctx.lineWidth = 24;
+    ctx.stroke(trackPath);
+    
+    ctx.strokeStyle = '#1c1c1c';
+    ctx.lineWidth = 20;
+    ctx.stroke(trackPath);
+
+    // Center line
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([10, 10]);
+    ctx.stroke(trackPath);
+    ctx.setLineDash([]);
+
+    // Events
+    const activeEventIds = new Set<string>();
+    events.slice(0, 40).forEach((event, idx) => {
       const sectorNum = parseInt(event.Sector_ID.replace('S_', ''), 10) || idx;
       const eventProgress = (sectorNum % 50) / 50;
-      const pos = getTrackPosition(eventProgress, width, height, leftOffset);
+      const pos = getTrackPosition(eventProgress);
       
       const isActive = Math.abs(event.timeMs - currentTime) < 2000;
       const isSelected = selectedEvent?.Critical_Event_ID === event.Critical_Event_ID;
 
-      // Check if event should trigger
       if (isPlaying && isActive && !triggeredEventsRef.current.has(event.Critical_Event_ID)) {
         triggeredEventsRef.current.add(event.Critical_Event_ID);
         onEventTrigger(event);
       }
 
-      if (isActive) {
-        // Pulse effect
-        ctx.beginPath();
-        ctx.arc(pos.x, pos.y, 20 + Math.sin(now / 200) * 5, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
-        ctx.fill();
-      }
+      if (isActive) activeEventIds.add(event.Critical_Event_ID);
 
+      // Event marker
       ctx.beginPath();
-      ctx.arc(pos.x, pos.y, isSelected ? 8 : isActive ? 6 : 4, 0, Math.PI * 2);
-      ctx.fillStyle = isSelected ? '#fff' : '#ef4444';
+      ctx.arc(pos.x, pos.y, isSelected ? 10 : isActive ? 7 : 5, 0, Math.PI * 2);
+      ctx.fillStyle = isSelected ? '#fff' : isActive ? '#ef4444' : 'rgba(239, 68, 68, 0.6)';
       ctx.fill();
+      
       if (isSelected) {
         ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+      
+      if (isActive) {
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, 15 + Math.sin(now / 150) * 3, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)';
         ctx.lineWidth = 2;
         ctx.stroke();
       }
     });
 
-    // Draw drivers
+    // Drivers
     drivers.forEach((driverId, idx) => {
-      const speedFactor = 1 - (idx * 0.004);
+      const speedFactor = 1 - (idx * 0.003);
       const driverProgress = (progress * speedFactor * 5) % 1;
-      const pos = getTrackPosition(driverProgress, width, height, leftOffset);
+      const pos = getTrackPosition(driverProgress);
       
       const color = COLORS[idx % COLORS.length];
       const isSelected = selectedDriver === driverId;
-      const opacity = selectedDriver && !isSelected ? 0.3 : 1;
+      const alpha = selectedDriver && !isSelected ? 0.35 : 1;
 
-      ctx.globalAlpha = opacity;
+      ctx.globalAlpha = alpha;
 
-      // Highlight ring for selected
+      // Selection ring
       if (isSelected) {
         ctx.beginPath();
-        ctx.arc(pos.x, pos.y, 16, 0, Math.PI * 2);
+        ctx.arc(pos.x, pos.y, 18, 0, Math.PI * 2);
         ctx.strokeStyle = '#fff';
         ctx.lineWidth = 2;
         ctx.stroke();
@@ -244,7 +297,7 @@ export function TrackCanvas({
 
       // Driver circle
       ctx.beginPath();
-      ctx.arc(pos.x, pos.y, isSelected ? 11 : 9, 0, Math.PI * 2);
+      ctx.arc(pos.x, pos.y, isSelected ? 12 : 10, 0, Math.PI * 2);
       ctx.fillStyle = color;
       ctx.fill();
       ctx.strokeStyle = '#000';
@@ -253,42 +306,44 @@ export function TrackCanvas({
 
       // Position number
       ctx.fillStyle = '#000';
-      ctx.font = 'bold 9px sans-serif';
+      ctx.font = 'bold 9px Inter, system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(String(idx + 1), pos.x, pos.y);
 
       // Driver label
       ctx.fillStyle = '#fff';
-      ctx.font = 'bold 8px sans-serif';
+      ctx.font = 'bold 9px Inter, system-ui, sans-serif';
       ctx.shadowColor = '#000';
-      ctx.shadowBlur = 3;
+      ctx.shadowBlur = 4;
       const driverNum = driverId.split('-').pop() || '?';
-      ctx.fillText(`#${driverNum}`, pos.x, pos.y - 16);
+      ctx.fillText(`#${driverNum}`, pos.x, pos.y - 18);
       ctx.shadowBlur = 0;
 
       ctx.globalAlpha = 1;
     });
 
-    // Continue animation
     animationRef.current = requestAnimationFrame(render);
   }, [trackData, drivers, events, isPlaying, playbackSpeed, selectedDriver, selectedEvent, 
-      leftPanelOpen, rightPanelOpen, gpsToCanvas, getTrackPosition, onTimeUpdate, onEventTrigger]);
+      getViewBounds, gpsToCanvas, buildTrackPath, getTrackPosition, onTimeUpdate, onEventTrigger]);
 
-  // Start animation loop
+  // Start animation
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Set canvas size to window
     const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      canvas.style.width = `${window.innerWidth}px`;
+      canvas.style.height = `${window.innerHeight}px`;
+      const ctx = canvas.getContext('2d');
+      if (ctx) ctx.scale(dpr, dpr);
     };
+    
     resize();
     window.addEventListener('resize', resize);
-
-    // Start render loop
     animationRef.current = requestAnimationFrame(render);
 
     return () => {
@@ -297,7 +352,7 @@ export function TrackCanvas({
     };
   }, [render]);
 
-  // Handle click
+  // Handle clicks
   const handleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -305,44 +360,41 @@ export function TrackCanvas({
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    const leftOffset = leftPanelOpen ? 320 : 0;
 
-    // Check drivers
     const progress = timeRef.current / RACE_DURATION;
+    
+    // Check drivers
     for (let idx = 0; idx < drivers.length; idx++) {
-      const speedFactor = 1 - (idx * 0.004);
+      const speedFactor = 1 - (idx * 0.003);
       const driverProgress = (progress * speedFactor * 5) % 1;
-      const pos = getTrackPosition(driverProgress, canvas.width, canvas.height, leftOffset);
+      const pos = getTrackPosition(driverProgress);
       
-      const dist = Math.sqrt((x - pos.x) ** 2 + (y - pos.y) ** 2);
-      if (dist < 15) {
+      if (Math.hypot(x - pos.x, y - pos.y) < 15) {
         onDriverClick(drivers[idx]);
         return;
       }
     }
 
     // Check events
-    for (let idx = 0; idx < Math.min(events.length, 30); idx++) {
+    for (let idx = 0; idx < Math.min(events.length, 40); idx++) {
       const event = events[idx];
       const sectorNum = parseInt(event.Sector_ID.replace('S_', ''), 10) || idx;
       const eventProgress = (sectorNum % 50) / 50;
-      const pos = getTrackPosition(eventProgress, canvas.width, canvas.height, leftOffset);
+      const pos = getTrackPosition(eventProgress);
       
-      const dist = Math.sqrt((x - pos.x) ** 2 + (y - pos.y) ** 2);
-      if (dist < 12) {
+      if (Math.hypot(x - pos.x, y - pos.y) < 15) {
         onEventClick(event);
         return;
       }
     }
-  }, [drivers, events, leftPanelOpen, getTrackPosition, onDriverClick, onEventClick]);
+  }, [drivers, events, getTrackPosition, onDriverClick, onEventClick]);
 
   return (
     <canvas
       ref={canvasRef}
       onClick={handleClick}
-      className="fixed inset-0 w-full h-full cursor-pointer"
+      className="fixed inset-0 cursor-pointer"
       style={{ zIndex: 0 }}
     />
   );
 }
-
