@@ -17,12 +17,68 @@ DRIVER_PROFILES_FILE = os.path.join(OUTPUT_DIR, 'driver_profiles.json')
 CHUNK_SIZE = 500_000
 RESAMPLE_RATE = '50ms'  # 20Hz
 
-print(f"Output directory confirmed: {OUTPUT_DIR}")
-print(f"Raw Data Source: {RAW_DATA_PATH}")
+print(f"Output directory: {OUTPUT_DIR}")
+print(f"Raw data source: {RAW_DATA_PATH}")
 
 
 def setup_directories():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+
+def resample_vehicle_data(vehicle_df, vehicle_id, track, race):
+    """
+    Resample a single vehicle's data to 20Hz.
+    Only resamples within continuous data segments (gaps > 1 second create new segments).
+    """
+    if vehicle_df.empty:
+        return pd.DataFrame()
+    
+    vehicle_df = vehicle_df.sort_index()
+    
+    # Get numeric columns only
+    numeric_cols = vehicle_df.select_dtypes(include=[np.number]).columns.tolist()
+    if not numeric_cols:
+        return pd.DataFrame()
+    
+    # Find gaps > 1 second to split into segments
+    time_diffs = vehicle_df.index.to_series().diff()
+    gap_threshold = pd.Timedelta(seconds=1)
+    
+    # Identify segment boundaries
+    segment_starts = [0] + list(np.where(time_diffs > gap_threshold)[0])
+    segment_ends = segment_starts[1:] + [len(vehicle_df)]
+    
+    resampled_segments = []
+    
+    for start_idx, end_idx in zip(segment_starts, segment_ends):
+        segment = vehicle_df.iloc[start_idx:end_idx][numeric_cols]
+        
+        if len(segment) < 2:
+            continue
+        
+        # Only resample if segment duration is reasonable (< 2 hours)
+        segment_duration = (segment.index.max() - segment.index.min()).total_seconds()
+        if segment_duration > 7200:  # Skip segments > 2 hours (likely bad data)
+            continue
+        
+        # Resample this segment to 20Hz
+        try:
+            resampled = segment.resample(RESAMPLE_RATE).mean()
+            # Forward fill then backward fill to handle edges
+            resampled = resampled.ffill().bfill()
+            
+            # Add metadata
+            resampled['Vehicle_ID'] = vehicle_id
+            resampled['Track'] = track
+            resampled['Race_Number'] = race
+            
+            resampled_segments.append(resampled)
+        except Exception as e:
+            continue
+    
+    if resampled_segments:
+        return pd.concat(resampled_segments)
+    return pd.DataFrame()
 
 
 def ingest_and_synchronize_data():
@@ -31,129 +87,114 @@ def ingest_and_synchronize_data():
     resamples to 20Hz, and creates the Master Timeline.
     """
     setup_directories()
-    print(f"--- Starting Data Ingestion ---")
+    print(f"\n--- Starting Data Ingestion ---")
     
-    # Initialize list to accumulate all race dataframes
     all_races_list = []
     driver_profiles = {}
     
-    # Search for files
+    # Search for telemetry files
     search_pattern = os.path.join(RAW_DATA_PATH, '*/*telemetry*.csv')
     telemetry_files = glob.glob(search_pattern)
 
     if not telemetry_files:
-        print(f"ERROR: No telemetry files found matching: {search_pattern}")
+        print(f"ERROR: No telemetry files found: {search_pattern}")
         return None
 
     total_files = len(telemetry_files)
     
     for file_index, file_path in enumerate(telemetry_files):
         race_folder = os.path.basename(os.path.dirname(file_path))
-        track_name, race_number = race_folder.split('_') if '_' in race_folder else ('Unknown', 'R0')
+        parts = race_folder.split('_')
+        track_name = parts[0] if parts else 'Unknown'
+        race_number = parts[1] if len(parts) > 1 else 'R0'
         file_name = os.path.basename(file_path)
         
-        print(f"\n[{file_index + 1}/{total_files}] Processing: {track_name}_{race_number} ({file_name})")
+        print(f"\n[{file_index + 1}/{total_files}] {track_name}_{race_number}")
         
         try:
-            # Read all chunks for this file
-            chunk_list = []
+            # Read and pivot all chunks
+            pivoted_chunks = []
             
-            for chunk_index, chunk in enumerate(pd.read_csv(file_path, chunksize=CHUNK_SIZE)):
-                print(f"  -> Chunk {chunk_index + 1}", end='', flush=True)
+            for chunk_idx, chunk in enumerate(pd.read_csv(file_path, chunksize=CHUNK_SIZE)):
+                print(f"  Chunk {chunk_idx + 1}", end='', flush=True)
                 
-                # Convert meta_time to datetime
-                if 'meta_time' in chunk.columns:
-                    chunk['Time'] = pd.to_datetime(chunk['meta_time'], errors='coerce')
-                else:
-                    print(" - ERROR: No meta_time column!")
+                # Parse time
+                if 'meta_time' not in chunk.columns:
+                    print(" - No meta_time!")
                     continue
                 
-                # Drop rows with invalid time
+                chunk['Time'] = pd.to_datetime(chunk['meta_time'], errors='coerce', utc=True)
                 chunk = chunk.dropna(subset=['Time'])
                 
                 if chunk.empty:
                     continue
                 
-                # Pivot from long to wide format
+                # Check if long format (has telemetry_name)
                 if 'telemetry_name' in chunk.columns and 'telemetry_value' in chunk.columns:
-                    # Group by Time and vehicle_id, pivot telemetry_name to columns
+                    # Pivot from long to wide
                     vehicle_col = 'vehicle_id' if 'vehicle_id' in chunk.columns else None
                     
                     if vehicle_col:
-                        # Pivot with vehicle_id
                         pivoted = chunk.pivot_table(
                             index=['Time', vehicle_col],
                             columns='telemetry_name',
                             values='telemetry_value',
                             aggfunc='first'
                         ).reset_index()
+                        pivoted.columns.name = None
                     else:
-                        # Pivot without vehicle_id
                         pivoted = chunk.pivot_table(
                             index='Time',
                             columns='telemetry_name',
                             values='telemetry_value',
                             aggfunc='first'
                         ).reset_index()
+                        pivoted.columns.name = None
                     
-                    # Flatten column names
-                    pivoted.columns.name = None
-                    
-                    # Debug first chunk
-                    if chunk_index == 0:
-                        telemetry_cols = [c for c in pivoted.columns if c not in ['Time', 'vehicle_id', 'Vehicle_ID']]
-                        print(f" - Pivoted to {len(telemetry_cols)} columns: {telemetry_cols[:5]}...")
+                    if chunk_idx == 0:
+                        cols = [c for c in pivoted.columns if c not in ['Time', 'vehicle_id']]
+                        print(f" -> {len(cols)} telemetry columns")
                     
                     chunk = pivoted
                 else:
-                    print(" - Already in wide format")
+                    if chunk_idx == 0:
+                        print(" -> Wide format")
                 
-                # Add track/race metadata
-                chunk['Track'] = track_name
-                chunk['Race_Number'] = race_number
-                
-                # Rename vehicle_id to Vehicle_ID for consistency
+                # Standardize vehicle_id column name
                 if 'vehicle_id' in chunk.columns:
                     chunk['Vehicle_ID'] = chunk['vehicle_id']
+                    chunk = chunk.drop(columns=['vehicle_id'])
                 
-                chunk_list.append(chunk)
+                pivoted_chunks.append(chunk)
             
-            print()  # Newline after chunks
+            print()  # Newline
             
-            if not chunk_list:
-                print(f"  -> WARNING: No valid data chunks")
+            if not pivoted_chunks:
+                print(f"  WARNING: No valid chunks")
                 continue
             
-            # Combine all chunks for this race
-            df_race = pd.concat(chunk_list, ignore_index=True)
-            print(f"  -> Combined: {len(df_race):,} rows, {len(df_race.columns)} columns")
+            # Combine chunks
+            df_race = pd.concat(pivoted_chunks, ignore_index=True)
+            print(f"  Combined: {len(df_race):,} rows")
             
             # Convert numeric columns
-            exclude_cols = ['Time', 'Track', 'Race_Number', 'Vehicle_ID', 'vehicle_id']
+            exclude_cols = ['Time', 'Track', 'Race_Number', 'Vehicle_ID']
             for col in df_race.columns:
                 if col not in exclude_cols:
                     df_race[col] = pd.to_numeric(df_race[col], errors='coerce')
             
-            # Resample to 20Hz per vehicle
+            # Resample per vehicle
             if 'Vehicle_ID' in df_race.columns:
+                vehicles = df_race['Vehicle_ID'].unique()
+                print(f"  Resampling {len(vehicles)} vehicles to 20Hz...")
+                
                 resampled_list = []
-                for vehicle_id in df_race['Vehicle_ID'].unique():
-                    vehicle_data = df_race[df_race['Vehicle_ID'] == vehicle_id].copy()
+                for vid in vehicles:
+                    vehicle_data = df_race[df_race['Vehicle_ID'] == vid].copy()
                     vehicle_data = vehicle_data.set_index('Time').sort_index()
                     
-                    # Get numeric columns only
-                    numeric_cols = vehicle_data.select_dtypes(include=[np.number]).columns.tolist()
-                    
-                    if numeric_cols and not vehicle_data.empty:
-                        # Resample numeric data
-                        resampled = vehicle_data[numeric_cols].resample(RESAMPLE_RATE).mean()
-                        resampled = resampled.interpolate(method='linear', limit_direction='both')
-                        
-                        # Add metadata back
-                        resampled['Vehicle_ID'] = vehicle_id
-                        resampled['Track'] = track_name
-                        resampled['Race_Number'] = race_number
-                        
+                    resampled = resample_vehicle_data(vehicle_data, vid, track_name, race_number)
+                    if not resampled.empty:
                         resampled_list.append(resampled)
                 
                 if resampled_list:
@@ -163,18 +204,18 @@ def ingest_and_synchronize_data():
             else:
                 # No vehicle_id - resample entire dataset
                 df_race = df_race.set_index('Time').sort_index()
-                numeric_cols = df_race.select_dtypes(include=[np.number]).columns.tolist()
-                
-                if numeric_cols:
-                    df_synced = df_race[numeric_cols].resample(RESAMPLE_RATE).mean()
-                    df_synced = df_synced.interpolate(method='linear', limit_direction='both')
-                    df_synced['Track'] = track_name
-                    df_synced['Race_Number'] = race_number
-                else:
-                    df_synced = pd.DataFrame()
+                df_synced = resample_vehicle_data(df_race, 'Unknown', track_name, race_number)
             
             if not df_synced.empty:
-                print(f"  -> Resampled to 20Hz: {len(df_synced):,} rows")
+                # Drop any remaining metadata columns
+                drop_cols = ['meta_source', 'meta_time', 'meta_event', 'meta_session', 
+                           'timestamp', 'outing', 'lap', 'value', 'expire_at', 
+                           'original_vehicle_id', 'vehicle_number']
+                for col in drop_cols:
+                    if col in df_synced.columns:
+                        df_synced = df_synced.drop(columns=[col])
+                
+                print(f"  Resampled: {len(df_synced):,} rows")
                 all_races_list.append(df_synced)
                 
                 # Update driver profiles
@@ -184,48 +225,59 @@ def ingest_and_synchronize_data():
                             driver_profiles[vid] = {
                                 'Vehicle_ID': str(vid),
                                 'Races': [],
-                                'Avg_Speed': 0
                             }
                         driver_profiles[vid]['Races'].append(f"{track_name}_{race_number}")
             else:
-                print(f"  -> WARNING: Empty after resampling")
+                print(f"  WARNING: Empty after resampling")
                 
         except Exception as e:
-            print(f"  -> ERROR: {e}")
+            print(f"  ERROR: {e}")
             import traceback
             traceback.print_exc()
             continue
     
-    # Combine all races into Master Timeline
+    # Combine all races
     if all_races_list:
-        print(f"\nCombining {len(all_races_list)} races into Master Timeline...")
+        print(f"\n--- Combining {len(all_races_list)} races ---")
         master_timeline = pd.concat(all_races_list)
         master_timeline = master_timeline.sort_index()
         
-        print(f"  -> Master Timeline: {len(master_timeline):,} rows, {len(master_timeline.columns)} columns")
-        print(f"  -> Columns: {list(master_timeline.columns)}")
+        # Report
+        print(f"Master Timeline: {len(master_timeline):,} rows")
+        print(f"Columns: {list(master_timeline.columns)}")
         
-        # Check for expected columns
-        expected = ['VBOX_Lat_Min', 'VBOX_Long_Minutes', 'speed', 'pbrake_f', 'Steering_Angle']
-        found = [c for c in expected if c in master_timeline.columns]
-        missing = [c for c in expected if c not in master_timeline.columns]
-        print(f"  -> Found telemetry: {found}")
+        if 'Track' in master_timeline.columns:
+            print("\nRows per track:")
+            print(master_timeline.groupby('Track').size())
+        
+        # Check for key columns
+        key_cols = ['speed', 'pbrake_f', 'Steering_Angle', 'gear', 'VBOX_Lat_Min', 'VBOX_Long_Minutes']
+        found = [c for c in key_cols if c in master_timeline.columns]
+        missing = [c for c in key_cols if c not in master_timeline.columns]
+        print(f"\nKey columns found: {found}")
         if missing:
-            print(f"  -> Missing: {missing}")
+            print(f"Key columns missing: {missing}")
         
-        # Save to Parquet
+        # Check nulls
+        null_pct = master_timeline.isnull().mean() * 100
+        high_null = null_pct[null_pct > 50]
+        if len(high_null) > 0:
+            print(f"\nColumns with >50% nulls: {list(high_null.index)}")
+        
+        # Save
         parquet_path = os.path.join(OUTPUT_DIR, 'master_timeline.parquet')
         master_timeline.to_parquet(parquet_path)
-        print(f"\nSaved Master Timeline to: {parquet_path}")
-        print(f"File size: {os.path.getsize(parquet_path) / 1024 / 1024:.2f} MB")
+        file_size = os.path.getsize(parquet_path) / 1024 / 1024
+        print(f"\nSaved: {parquet_path}")
+        print(f"Size: {file_size:.1f} MB")
     else:
-        print("\nERROR: No race data was successfully processed!")
+        print("\nERROR: No race data processed!")
         return None
     
     # Save driver profiles
     with open(DRIVER_PROFILES_FILE, 'w') as f:
         json.dump(driver_profiles, f, indent=2)
-    print(f"Saved driver profiles to: {DRIVER_PROFILES_FILE}")
+    print(f"Saved: {DRIVER_PROFILES_FILE}")
     
     return master_timeline
 
