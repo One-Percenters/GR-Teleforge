@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useRaceData } from './hooks/useRaceData';
 import { usePlayback } from './hooks/usePlayback';
-import { Header, RoadView, MiniMap, LeftPanel, PlaybackControls } from './components';
+import { Header, TrackView, LeftPanel, RightPanel, PlaybackControls } from './components';
 import type { TrackName, RaceNumber, ProcessedEvent } from './types';
 
 // Color palette for drivers
@@ -23,7 +23,9 @@ const TOTAL_LAPS = 15;
 export default function RacePage() {
   const [currentTrack, setCurrentTrack] = useState<TrackName>('Barber');
   const [currentRace, setCurrentRace] = useState<RaceNumber>('R1');
+  const [selectedEvent, setSelectedEvent] = useState<ProcessedEvent | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
+  const [rightPanelOpen, setRightPanelOpen] = useState(false);
 
   const {
     isLoading,
@@ -34,6 +36,11 @@ export default function RacePage() {
     raceDuration
   } = useRaceData(currentTrack, currentRace);
 
+  const handleEventTrigger = useCallback((event: ProcessedEvent) => {
+    setSelectedEvent(event);
+    setRightPanelOpen(true);
+  }, []);
+
   const {
     state: playbackState,
     toggle: togglePlayback,
@@ -43,18 +50,13 @@ export default function RacePage() {
     progress
   } = usePlayback({
     duration: raceDuration,
-    events: processedEvents
+    events: processedEvents,
+    onEventTrigger: handleEventTrigger
   });
 
-  // Current lap
   const currentLap = useMemo(() => {
     return Math.min(TOTAL_LAPS, Math.floor((progress / 100) * TOTAL_LAPS) + 1);
   }, [progress]);
-
-  // Camera view position (follows leader)
-  const viewPosition = useMemo(() => {
-    return (playbackState.currentTime / raceDuration) % 1;
-  }, [playbackState.currentTime, raceDuration]);
 
   const getDriverColor = useCallback((driverId: string) => {
     const idx = currentDrivers.indexOf(driverId);
@@ -63,15 +65,29 @@ export default function RacePage() {
 
   const handleTrackChange = useCallback((track: TrackName) => {
     setCurrentTrack(track);
+    setSelectedEvent(null);
     setSelectedDriver(null);
+    setRightPanelOpen(false);
   }, []);
 
   const handleRaceChange = useCallback((race: RaceNumber) => {
     setCurrentRace(race);
+    setSelectedEvent(null);
+    setRightPanelOpen(false);
   }, []);
 
-  const handleDriverSelect = useCallback((driverId: string | null) => {
-    setSelectedDriver(driverId);
+  const handleEventClick = useCallback((event: ProcessedEvent) => {
+    setSelectedEvent(event);
+    setRightPanelOpen(true);
+  }, []);
+
+  const handleDriverClick = useCallback((driverId: string) => {
+    setSelectedDriver(prev => prev === driverId ? null : driverId);
+  }, []);
+
+  const handleCloseRightPanel = useCallback(() => {
+    setRightPanelOpen(false);
+    setSelectedEvent(null);
   }, []);
 
   if (isLoading) {
@@ -117,7 +133,7 @@ export default function RacePage() {
         onRaceChange={handleRaceChange}
       />
 
-      {/* Left Panel with event feed */}
+      {/* Left Panel */}
       <LeftPanel
         drivers={currentDrivers}
         selectedDriver={selectedDriver}
@@ -127,36 +143,39 @@ export default function RacePage() {
         raceNumber={currentRace}
         currentLap={currentLap}
         totalLaps={TOTAL_LAPS}
-        onDriverSelect={handleDriverSelect}
+        onDriverSelect={handleDriverClick}
         getDriverColor={getDriverColor}
       />
 
-      {/* Mini Map - Top Right */}
-      <div className="fixed top-20 right-6 z-40">
-        <MiniMap
-          trackData={currentTrackData}
-          drivers={currentDrivers}
-          currentTime={playbackState.currentTime}
-          raceDuration={raceDuration}
-          getDriverColor={getDriverColor}
-          viewPosition={viewPosition}
-        />
-      </div>
-
-      {/* Main Road View */}
-      <div className="fixed inset-0 flex items-center justify-center pl-80 pt-16 pb-24">
-        <div className="w-full h-full max-w-5xl p-4">
-          <RoadView
+      {/* Main Track View - Straight top-down */}
+      <div className="fixed inset-0 flex items-center justify-center pl-80 pt-24 pb-28 pr-4">
+        <div className="w-full h-full max-w-4xl">
+          <TrackView
             trackData={currentTrackData}
             drivers={currentDrivers}
+            events={processedEvents}
+            activeEvents={activeEvents}
+            selectedEvent={selectedEvent}
+            selectedDriver={selectedDriver}
             currentTime={playbackState.currentTime}
             raceDuration={raceDuration}
-            activeEvents={activeEvents}
-            selectedDriver={selectedDriver}
+            onEventClick={handleEventClick}
+            onDriverClick={handleDriverClick}
             getDriverColor={getDriverColor}
           />
         </div>
       </div>
+
+      {/* Right Panel */}
+      <RightPanel
+        isOpen={rightPanelOpen}
+        event={selectedEvent}
+        drivers={currentDrivers}
+        trackName={currentTrack}
+        raceNumber={currentRace}
+        onClose={handleCloseRightPanel}
+        getDriverColor={getDriverColor}
+      />
 
       {/* Playback Controls */}
       <PlaybackControls
