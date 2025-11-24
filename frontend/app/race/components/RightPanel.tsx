@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import type { ProcessedEvent, TrackName, RaceNumber } from '../types';
 import { TRACK_WEATHER, TRACK_INFO } from '../data/weather';
 
@@ -23,9 +22,6 @@ export function RightPanel({
   onClose,
   getDriverColor
 }: RightPanelProps) {
-  const [analysis, setAnalysis] = useState<string>('');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-
   const weather = TRACK_WEATHER[trackName]?.[raceNumber];
   const trackInfo = TRACK_INFO[trackName];
 
@@ -35,45 +31,12 @@ export function RightPanel({
     return idx >= 0 ? idx + 1 : '?';
   };
 
-  // Fetch Gemini analysis when event changes
-  useEffect(() => {
-    if (!event) {
-      setAnalysis('');
-      return;
-    }
-
-    setIsAnalyzing(true);
-    setAnalysis('');
-
-    fetch('/api/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...event,
-        Track: trackName
-      })
-    })
-      .then(res => res.json())
-      .then(data => {
-        setAnalysis(data.analysis || 'Analysis unavailable.');
-      })
-      .catch(() => {
-        setAnalysis('Unable to generate analysis.');
-      })
-      .finally(() => {
-        setIsAnalyzing(false);
-      });
-  }, [event, trackName]);
-
   if (!isOpen) return null;
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Close button */}
-      <button
-        onClick={onClose}
-        className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-zinc-500 hover:text-white z-10"
-      >
+    <div className="h-full flex flex-col text-white">
+      {/* Close */}
+      <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-zinc-500 hover:text-white z-10">
         ✕
       </button>
 
@@ -84,7 +47,7 @@ export function RightPanel({
           <div className="bg-zinc-900/60 rounded-xl p-4">
             <div className="flex justify-between items-start mb-3">
               <div>
-                <h3 className="text-lg font-bold text-white">{trackName}</h3>
+                <h3 className="text-xl font-black text-white">{trackName}</h3>
                 <p className="text-xs text-zinc-500">{trackInfo?.location}</p>
               </div>
             </div>
@@ -107,31 +70,31 @@ export function RightPanel({
             {weather && (
               <div className="border-t border-zinc-800 pt-3">
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="text-3xl">
+                  <span className="text-4xl">
                     {weather.condition === 'Sunny' ? '☀️' : 
                      weather.condition === 'Partly Cloudy' ? '⛅' : '☁️'}
                   </span>
                   <div>
-                    <p className="text-2xl font-bold text-white">{weather.temperature}°F</p>
+                    <p className="text-3xl font-black text-white">{weather.temperature}°F</p>
                     <p className="text-xs text-zinc-500">{weather.condition}</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-zinc-500">Track Temp</span>
-                    <span className="text-orange-400 font-semibold">{weather.trackTemp}°F</span>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="bg-zinc-800/30 rounded-lg p-2">
+                    <p className="text-zinc-500">Track Temp</p>
+                    <p className="text-orange-400 font-bold text-lg">{weather.trackTemp}°F</p>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-500">Humidity</span>
-                    <span className="text-white">{weather.humidity}%</span>
+                  <div className="bg-zinc-800/30 rounded-lg p-2">
+                    <p className="text-zinc-500">Humidity</p>
+                    <p className="text-cyan-400 font-bold text-lg">{weather.humidity}%</p>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-500">Wind</span>
-                    <span className="text-white">{weather.windSpeed} mph {weather.windDir}</span>
+                  <div className="bg-zinc-800/30 rounded-lg p-2">
+                    <p className="text-zinc-500">Wind</p>
+                    <p className="text-white font-semibold">{weather.windSpeed} mph {weather.windDir}</p>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-zinc-500">Rain Chance</span>
-                    <span className="text-blue-400">{weather.rainChance}%</span>
+                  <div className="bg-zinc-800/30 rounded-lg p-2">
+                    <p className="text-zinc-500">Rain Chance</p>
+                    <p className="text-blue-400 font-semibold">{weather.rainChance}%</p>
                   </div>
                 </div>
               </div>
@@ -139,31 +102,13 @@ export function RightPanel({
           </div>
         </div>
 
-        {/* Event Details */}
+        {/* Event Details when selected */}
         {event && (
           <div>
             <h2 className="text-[10px] text-zinc-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              Overtake Event
+              <span className="w-2 h-2 bg-red-500 rounded-full" />
+              Selected Overtake
             </h2>
-
-            {/* Gemini Analysis */}
-            <div className="bg-gradient-to-br from-blue-900/30 to-purple-900/30 border border-blue-500/30 rounded-xl p-4 mb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <svg className="w-4 h-4 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                </svg>
-                <span className="text-[10px] text-blue-400 uppercase tracking-wider font-semibold">AI Analysis</span>
-              </div>
-              {isAnalyzing ? (
-                <div className="flex items-center gap-2 text-sm text-zinc-400">
-                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                  Analyzing telemetry...
-                </div>
-              ) : (
-                <p className="text-sm text-zinc-300 leading-relaxed">{analysis}</p>
-              )}
-            </div>
 
             {/* Winner */}
             <div className="bg-green-900/20 border border-green-500/30 rounded-xl p-4 mb-3">
@@ -172,13 +117,13 @@ export function RightPanel({
               </p>
               <div className="flex items-center gap-3">
                 <div 
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
+                  className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-black"
                   style={{ backgroundColor: getDriverColor(event.Winner_ID), color: '#000' }}
                 >
                   P{getDriverPosition(event.Winner_ID)}
                 </div>
                 <div>
-                  <p className="text-xl font-black text-white">#{getDriverNumber(event.Winner_ID)}</p>
+                  <p className="text-2xl font-black text-white">#{getDriverNumber(event.Winner_ID)}</p>
                   <p className="text-xs text-zinc-500">{event.Winner_ID}</p>
                 </div>
               </div>
@@ -191,52 +136,45 @@ export function RightPanel({
               </p>
               <div className="flex items-center gap-3">
                 <div 
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
+                  className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-black"
                   style={{ backgroundColor: getDriverColor(event.Loser_ID), color: '#000' }}
                 >
                   P{getDriverPosition(event.Loser_ID)}
                 </div>
                 <div>
-                  <p className="text-xl font-black text-white">#{getDriverNumber(event.Loser_ID)}</p>
+                  <p className="text-2xl font-black text-white">#{getDriverNumber(event.Loser_ID)}</p>
                   <p className="text-xs text-zinc-500">{event.Loser_ID}</p>
                 </div>
               </div>
             </div>
 
-            {/* Event Metadata */}
-            <div className="grid grid-cols-3 gap-2">
+            {/* Metadata */}
+            <div className="grid grid-cols-3 gap-2 mb-4">
               <div className="bg-zinc-900/60 rounded-lg p-3 text-center">
-                <p className="text-[10px] text-zinc-500 uppercase">Sector</p>
+                <p className="text-[9px] text-zinc-500 uppercase">Sector</p>
                 <p className="text-lg font-bold text-white">{event.Sector_ID}</p>
               </div>
               <div className="bg-zinc-900/60 rounded-lg p-3 text-center">
-                <p className="text-[10px] text-zinc-500 uppercase">Lap</p>
+                <p className="text-[9px] text-zinc-500 uppercase">Lap</p>
                 <p className="text-lg font-bold text-white">{event.Lap_Number}</p>
               </div>
               <div className="bg-zinc-900/60 rounded-lg p-3 text-center">
-                <p className="text-[10px] text-zinc-500 uppercase">Time</p>
+                <p className="text-[9px] text-zinc-500 uppercase">Time</p>
                 <p className="text-lg font-bold text-white">
-                  {new Date(event.Timestamp).toLocaleTimeString('en-US', { 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: false 
-                  })}
+                  {new Date(event.Timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
                 </p>
               </div>
             </div>
 
             {/* Reason */}
             {event.Reason_Code && event.Reason_Code !== 'Data_Missing' && (
-              <div className="mt-4 bg-zinc-900/60 rounded-lg p-3">
-                <p className="text-[10px] text-zinc-500 uppercase mb-1">Primary Factor</p>
-                <p className="text-sm font-semibold text-amber-400">
+              <div className="bg-amber-900/20 border border-amber-500/30 rounded-lg p-3">
+                <p className="text-[9px] text-amber-400 uppercase mb-1">Telemetry Factor</p>
+                <p className="text-sm font-semibold text-amber-300">
                   {event.Reason_Code.replace(/_/g, ' ')}
                 </p>
                 {event.Reason_Value && (
-                  <p className="text-xs text-zinc-400 mt-1">
-                    Delta: {event.Reason_Value.toFixed(2)}
-                  </p>
+                  <p className="text-xs text-zinc-400 mt-1">Delta: {Math.abs(event.Reason_Value).toFixed(2)}</p>
                 )}
               </div>
             )}
@@ -244,9 +182,12 @@ export function RightPanel({
         )}
 
         {!event && (
-          <div className="text-center text-zinc-500 py-8">
-            <p className="text-sm">Click an event on the track</p>
-            <p className="text-xs mt-1">to see detailed analysis</p>
+          <div className="text-center py-8">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-zinc-800/50 flex items-center justify-center">
+              <span className="text-2xl">🏎️</span>
+            </div>
+            <p className="text-zinc-400 text-sm">Click an event on the track</p>
+            <p className="text-zinc-600 text-xs mt-1">to see detailed info</p>
           </div>
         )}
       </div>
