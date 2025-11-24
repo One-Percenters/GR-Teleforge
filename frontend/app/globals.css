@@ -1,20 +1,48 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #09090b; /* zinc-950 */
+  --foreground: #fafafa; /* zinc-50 */
+  
+  --card: #18181b; /* zinc-900 */
+  --card-foreground: #fafafa;
+  
+  --primary: #ef4444; /* red-500 */
+  --primary-foreground: #fafafa;
+  
+  --secondary: #27272a; /* zinc-800 */
+  --secondary-foreground: #fafafa;
+  
+  --accent: #dc2626; /* red-600 */
+  --accent-foreground: #fafafa;
+  
+  --muted: #71717a; /* zinc-500 */
+  --muted-foreground: #a1a1aa; /* zinc-400 */
+  
+  --border: #27272a; /* zinc-800 */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #09090b;
     --foreground: #ededed;
   }
 }
@@ -22,5 +50,5 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
