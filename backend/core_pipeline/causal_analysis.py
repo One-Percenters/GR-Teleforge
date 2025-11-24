@@ -42,17 +42,33 @@ def run_causal_analysis(df_master=None, event_list=None):
     updated_events = []
 
     for event in event_list:
-        winner_id = event['Winner_ID']
-        loser_id = event['Loser_ID']
+        winner_id = str(event['Winner_ID'])
+        loser_id = str(event['Loser_ID'])
         event_time = pd.to_datetime(event['Timestamp'])
+        sector_id = event.get('Sector_ID', '')
         
-        # Define a window around the event for localized analysis (+/- 1 second is typical)
+        # Contextual Mapping: Verify if the Event Timestamp falls within a defined Critical Sector boundaries
+        # Check if event has a valid Critical Sector ID
+        if not sector_id or not sector_id.startswith('S_'):
+            event['Reason_Code'] = "Invalid_Sector"
+            updated_events.append(event)
+            continue
+        
+        # Define a window around the event for localized analysis (+/- 1.5 seconds)
         analysis_window_start = event_time - pd.Timedelta(seconds=1.5)
         analysis_window_end = event_time + pd.Timedelta(seconds=1.5)
         
         # Slice data for the Winner and Loser in the analysis window
-        winner_data = df_master[df_master['Vehicle_ID'] == winner_id].loc[analysis_window_start:analysis_window_end]
-        loser_data = df_master[df_master['Vehicle_ID'] == loser_id].loc[analysis_window_start:analysis_window_end]
+        # Filter by Vehicle_ID and ensure we're in the same sector
+        winner_data = df_master[
+            (df_master['Vehicle_ID'].astype(str) == winner_id) &
+            (df_master['Sector_ID'] == sector_id)
+        ].loc[analysis_window_start:analysis_window_end]
+        
+        loser_data = df_master[
+            (df_master['Vehicle_ID'].astype(str) == loser_id) &
+            (df_master['Sector_ID'] == sector_id)
+        ].loc[analysis_window_start:analysis_window_end]
 
         if winner_data.empty or loser_data.empty:
             # Cannot compare inputs if data is missing
@@ -60,30 +76,62 @@ def run_causal_analysis(df_master=None, event_list=None):
             updated_events.append(event)
             continue
             
-        # [cite_start]--- Comparative Math: Calculate Deltas using subtraction [cite: 110] ---
+        # --- Comparative Math: Calculate Deltas using subtraction ---
         deltas = {}
 
-        # [cite_start]1. Brake Logic: Analyze Peak Pressure and Timing [cite: 112]
-        winner_peak_pressure = winner_data['pbrake_f'].max()
-        loser_peak_pressure = loser_data['pbrake_f'].max()
-        # Positive delta means winner braked harder/later
-        deltas['Brake_Pressure_Delta'] = winner_peak_pressure - loser_peak_pressure
-        
-        # Calculate Brake_Timing_Delta (Distance)
-        winner_brake_dist = find_brake_start_dist(winner_data, event_time)
-        loser_brake_dist = find_brake_start_dist(loser_data, event_time)
-        # Positive delta means Winner started braking later (closer to corner)
-        deltas['Brake_Timing_Delta'] = loser_brake_dist - winner_brake_dist 
+        # 1. Brake Logic: Analyze Peak Pressure and Timing
+        if 'pbrake_f' in winner_data.columns and 'pbrake_f' in loser_data.columns:
+            winner_peak_pressure = winner_data['pbrake_f'].max()
+            loser_peak_pressure = loser_data['pbrake_f'].max()
+            # Positive delta means winner braked harder
+            deltas['Brake_Pressure_Delta'] = winner_peak_pressure - loser_peak_pressure
+            
+            # Calculate Brake_Timing_Delta (Distance)
+            winner_brake_dist = find_brake_start_dist(winner_data, event_time)
+            loser_brake_dist = find_brake_start_dist(loser_data, event_time)
+            # Positive delta means Winner started braking later (closer to corner)
+            if not pd.isna(winner_brake_dist) and not pd.isna(loser_brake_dist):
+                deltas['Brake_Timing_Delta'] = loser_brake_dist - winner_brake_dist
+            else:
+                deltas['Brake_Timing_Delta'] = 0.0
+        else:
+            deltas['Brake_Pressure_Delta'] = 0.0
+            deltas['Brake_Timing_Delta'] = 0.0
 
-        # [cite_start]2. Throttle Logic: Compare Throttle Commitment [cite: 114]
-        winner_throttle_mean = winner_data['ath'].mean()
-        loser_throttle_mean = loser_data['ath'].mean()
-        deltas['Throttle_Commit_Delta'] = winner_throttle_mean - loser_throttle_mean
+        # 2. Throttle Logic: Compare Throttle Commitment (Time to 100%)
+        if 'ath' in winner_data.columns and 'ath' in loser_data.columns:
+            # Find time to reach 100% throttle (or max throttle in window)
+            winner_max_throttle = winner_data['ath'].max()
+            loser_max_throttle = loser_data['ath'].max()
+            
+            # Time to 100%: Find first time when throttle reaches near-maximum (>=95%)
+            winner_time_to_max = None
+            loser_time_to_max = None
+            
+            winner_throttle_high = winner_data[winner_data['ath'] >= 95]
+            if not winner_throttle_high.empty:
+                winner_time_to_max = (winner_throttle_high.index[0] - analysis_window_start).total_seconds()
+            
+            loser_throttle_high = loser_data[loser_data['ath'] >= 95]
+            if not loser_throttle_high.empty:
+                loser_time_to_max = (loser_throttle_high.index[0] - analysis_window_start).total_seconds()
+            
+            # Compare time to 100% throttle (negative = winner reached 100% faster)
+            if winner_time_to_max is not None and loser_time_to_max is not None:
+                deltas['Throttle_Commit_Delta'] = loser_time_to_max - winner_time_to_max
+            else:
+                # Fallback to mean throttle comparison
+                deltas['Throttle_Commit_Delta'] = winner_data['ath'].mean() - loser_data['ath'].mean()
+        else:
+            deltas['Throttle_Commit_Delta'] = 0.0
 
-        # [cite_start]3. Gear Selection: Compare Modal Gear [cite: 115]
-        winner_gear = winner_data['Gear'].mode().iloc[0] if not winner_data['Gear'].empty else 0
-        loser_gear = loser_data['Gear'].mode().iloc[0] if not loser_data['Gear'].empty else 0
-        deltas['Gear_Delta'] = winner_gear - loser_gear
+        # 3. Gear Selection: Compare Modal Gear at sector apex
+        if 'Gear' in winner_data.columns and 'Gear' in loser_data.columns:
+            winner_gear = winner_data['Gear'].mode().iloc[0] if not winner_data['Gear'].empty else 0
+            loser_gear = loser_data['Gear'].mode().iloc[0] if not loser_data['Gear'].empty else 0
+            deltas['Gear_Delta'] = winner_gear - loser_gear
+        else:
+            deltas['Gear_Delta'] = 0.0
         
         # [cite_start]--- Result: Assign primary "Reason Code" [cite: 116] ---
         

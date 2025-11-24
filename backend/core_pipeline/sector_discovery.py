@@ -9,8 +9,10 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 PROCESSED_DATA_PATH = os.path.join(REPO_ROOT, 'data_processed', 'master_timeline.parquet')
 
 # --- Sector Discovery Constants ---
-ROLLING_MEDIAN_WINDOW = 5 #
-CURVATURE_THRESHOLD_DEGREES_PER_STEP = 0.1 # Threshold for classification
+ROLLING_MEDIAN_WINDOW = 5  # Rolling window for noise reduction
+# Curvature threshold: 0.1 degrees per step at 20Hz (50ms) = 2 degrees/sec
+# This matches the specification requirement of 2 degrees/sec
+CURVATURE_THRESHOLD_DEGREES_PER_STEP = 0.1
 
 def calculate_bearing(lat1, lon1, lat2, lon2):
     """Calculates the bearing (initial course) in degrees between two GPS points."""

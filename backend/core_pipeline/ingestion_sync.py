@@ -110,26 +110,76 @@ def ingest_and_synchronize_data():
                             unique_names = chunk['telemetry_name'].dropna().unique()
                             if len(unique_names) > 0 and chunk_index == 0:  # Only print for first chunk
                                 print(f"    Found {len(unique_names)} unique telemetry parameters to pivot")
+                                # Show sample of telemetry names
+                                sample_names = list(unique_names[:10])
+                                print(f"    Sample parameters: {sample_names}")
+                        
+                        # Preserve other metadata columns that shouldn't be pivoted
+                        metadata_cols = []
+                        for col in ['meta_source', 'meta_event', 'meta_session', 'timestamp', 'outing', 'lap', 'expire_at']:
+                            if col in chunk.columns:
+                                metadata_cols.append(col)
                         
                         # Pivot: telemetry_name becomes columns, value becomes data
-                        if vehicle_id_col:
-                            pivot_index = ['Time', vehicle_id_col]
+                        # CRITICAL: Don't include vehicle_id in pivot index - pivot per vehicle separately
+                        # This ensures all telemetry data is preserved
+                        pivot_index = ['Time'] + metadata_cols
+                        
+                        # If we have multiple vehicles, we need to handle them separately
+                        if vehicle_id_col and chunk[vehicle_id_col].nunique() > 1:
+                            # Multiple vehicles: pivot each separately then combine
+                            vehicle_chunks = []
+                            for vehicle_id_val in chunk[vehicle_id_col].unique():
+                                vehicle_data = chunk[chunk[vehicle_id_col] == vehicle_id_val].copy()
+                                
+                                # Pivot this vehicle's data
+                                vehicle_pivoted = vehicle_data.pivot_table(
+                                    index=pivot_index,
+                                    columns='telemetry_name',
+                                    values=value_col,
+                                    aggfunc='first'
+                                )
+                                
+                                # Flatten column names
+                                vehicle_pivoted.columns.name = None
+                                vehicle_pivoted = vehicle_pivoted.reset_index()
+                                
+                                # Add vehicle_id back as a column
+                                vehicle_pivoted[vehicle_id_col] = vehicle_id_val
+                                
+                                vehicle_chunks.append(vehicle_pivoted)
+                            
+                            # Combine all vehicles
+                            chunk_pivoted = pd.concat(vehicle_chunks, ignore_index=True)
                         else:
-                            pivot_index = ['Time']
-                        
-                        chunk = chunk.pivot_table(
-                            index=pivot_index,
-                            columns='telemetry_name',
-                            values=value_col,
-                            aggfunc='first'
-                        )
-                        
-                        # Flatten column names
-                        chunk.columns.name = None
-                        chunk = chunk.reset_index()
+                            # Single vehicle or no vehicle_id: simple pivot
+                            chunk_pivoted = chunk.pivot_table(
+                                index=pivot_index,
+                                columns='telemetry_name',
+                                values=value_col,
+                                aggfunc='first'
+                            )
+                            
+                            # Flatten column names
+                            chunk_pivoted.columns.name = None
+                            chunk_pivoted = chunk_pivoted.reset_index()
+                            
+                            # Add vehicle_id back if it exists
+                            if vehicle_id_col and vehicle_id_col not in chunk_pivoted.columns:
+                                if len(chunk[vehicle_id_col].unique()) == 1:
+                                    chunk_pivoted[vehicle_id_col] = chunk[vehicle_id_col].iloc[0]
                         
                         # Set Time back as index
-                        chunk = chunk.set_index('Time')
+                        chunk = chunk_pivoted.set_index('Time')
+                        
+                        # Debug: Show what columns were created
+                        if chunk_index == 0:
+                            telemetry_cols = [c for c in chunk.columns if c not in pivot_index and c != 'Time']
+                            print(f"    Created {len(telemetry_cols)} telemetry columns from pivot")
+                            # Check for GPS columns
+                            gps_cols = [c for c in telemetry_cols if 'lat' in c.lower() or 'long' in c.lower() or 'gps' in c.lower()]
+                            if gps_cols:
+                                print(f"    GPS columns found: {gps_cols[:5]}")
                     
                     # FIX: Explicitly convert all columns to numeric, coercing errors to NaN
                     # This resolves the 'agg function failed [how->mean,dtype->object]' error
@@ -150,9 +200,20 @@ def ingest_and_synchronize_data():
                             continue
                     
                     # Separate numeric and non-numeric columns to handle resampling properly
-                    # (some columns like Vehicle_ID might still be non-numeric)
+                    # Preserve vehicle_id and metadata columns
+                    preserve_cols = []
+                    for col in ['vehicle_id', 'Vehicle_ID', 'vehicle_number', 'original_vehicle_id', 
+                               'meta_source', 'meta_event', 'meta_session', 'timestamp', 'outing', 'lap', 'expire_at']:
+                        if col in chunk.columns:
+                            preserve_cols.append(col)
+                    
                     numeric_cols = chunk.select_dtypes(include=[np.number]).columns.tolist()
+                    # Remove preserve_cols from numeric_cols if they're numeric (we'll handle them separately)
+                    numeric_cols = [c for c in numeric_cols if c not in preserve_cols]
+                    
                     non_numeric_cols = chunk.select_dtypes(exclude=[np.number]).columns.tolist()
+                    # Remove preserve_cols from non_numeric_cols
+                    non_numeric_cols = [c for c in non_numeric_cols if c not in preserve_cols]
                     
                     # Create resampled index first (use numeric columns if available, otherwise use full chunk)
                     if len(numeric_cols) > 0:
@@ -160,9 +221,12 @@ def ingest_and_synchronize_data():
                     else:
                         resampled_index = chunk.resample(RESAMPLE_RATE).ffill().index
                     
-                    # Resample numeric columns with mean and interpolate
+                    # Resample numeric columns with mean and interpolate (telemetry data)
+                    # Use interpolation to fill gaps and preserve all time points
                     if len(numeric_cols) > 0:
-                        numeric_resampled = chunk[numeric_cols].resample(RESAMPLE_RATE).mean().interpolate()
+                        # Resample to uniform time grid, then interpolate to fill gaps
+                        numeric_resampled = chunk[numeric_cols].resample(RESAMPLE_RATE).mean()
+                        numeric_resampled = numeric_resampled.interpolate(method='linear', limit_direction='both')
                     else:
                         numeric_resampled = pd.DataFrame(index=resampled_index)
                     
@@ -172,8 +236,14 @@ def ingest_and_synchronize_data():
                     else:
                         non_numeric_resampled = pd.DataFrame(index=resampled_index)
                     
-                    # Combine numeric and non-numeric columns back together
-                    chunk_synced = pd.concat([numeric_resampled, non_numeric_resampled], axis=1)
+                    # Resample preserve columns (metadata) with forward fill
+                    if len(preserve_cols) > 0:
+                        preserve_resampled = chunk[preserve_cols].resample(RESAMPLE_RATE).ffill()
+                    else:
+                        preserve_resampled = pd.DataFrame(index=resampled_index)
+                    
+                    # Combine all columns back together
+                    chunk_synced = pd.concat([numeric_resampled, non_numeric_resampled, preserve_resampled], axis=1)
                     chunk_list.append(chunk_synced)
             
             sys.stdout.write('\n')
@@ -183,6 +253,9 @@ def ingest_and_synchronize_data():
                 continue
 
             df_synced = pd.concat(chunk_list)
+            
+            # Debug: Report data size after chunk concatenation
+            print(f"  -> Combined {len(chunk_list)} chunks: {len(df_synced):,} rows, {len(df_synced.columns)} columns")
             
             # CRITICAL FIX: Ensure all numeric columns (especially VBOX and sensor data) are properly typed
             # This must happen AFTER pivot to ensure all new columns are numeric
@@ -239,13 +312,35 @@ def ingest_and_synchronize_data():
     # Final concatenation: Combine all race dataframes in a single operation
     if all_races_list:
         print(f"\nConcatenating {len(all_races_list)} race dataframes into Master Timeline...")
+        
+        # Debug: Show size of each race before concatenation
+        total_rows_before = sum(len(df) for df in all_races_list)
+        print(f"  -> Total rows before concatenation: {total_rows_before:,}")
+        
         master_timeline = pd.concat(all_races_list, ignore_index=False)
+        
+        print(f"  -> Master Timeline after concatenation: {len(master_timeline):,} rows, {len(master_timeline.columns)} columns")
         
         # FINAL FIX: Ensure all numeric columns are properly typed after final concatenation
         # This catches any columns that may have been lost or corrupted during the merge
         print("Validating and cleaning data types in Master Timeline...")
-        context_columns = ['Track', 'Race_Number', 'Vehicle_ID']
+        context_columns = ['Track', 'Race_Number', 'Vehicle_ID', 'vehicle_id', 'vehicle_number', 
+                          'original_vehicle_id', 'meta_source', 'meta_event', 'meta_session', 
+                          'timestamp', 'outing', 'lap', 'expire_at']
         columns_cleaned = 0
+        
+        # Check for expected telemetry columns
+        expected_telemetry = ['VBOX_Lat_Min', 'VBOX_Long_Minutes', 'Laptrigger_lapdist_dls', 
+                            'Speed', 'pbrake_f', 'ath', 'Gear', 'nmot', 'Steering_Angle']
+        found_telemetry = [col for col in expected_telemetry if col in master_timeline.columns]
+        missing_telemetry = [col for col in expected_telemetry if col not in master_timeline.columns]
+        
+        if found_telemetry:
+            print(f"  -> Found {len(found_telemetry)} expected telemetry columns: {found_telemetry[:5]}...")
+        if missing_telemetry:
+            print(f"  -> WARNING: Missing {len(missing_telemetry)} expected columns: {missing_telemetry[:5]}...")
+            print(f"  -> Available columns: {list(master_timeline.columns)[:20]}...")
+        
         for col in master_timeline.columns:
             if col not in context_columns:
                 try:

@@ -29,71 +29,106 @@ def detect_critical_events(df=None):
     print(f"Scanning {len(df):,} total data points for Critical Events...")
     os.makedirs(EVENT_METADATA_DIR, exist_ok=True)
     
+    # Check if required columns exist
+    required_cols = ['Laptrigger_lapdist_dls', 'Vehicle_ID', 'Sector_ID']
+    missing_cols = [col for col in required_cols if col not in df.columns]
+    if missing_cols:
+        print(f"ERROR: Missing required columns: {missing_cols}")
+        print(f"Available columns: {list(df.columns)}")
+        return []
+    
     all_confirmed_events = []
     
     # Ensure data is sorted for positional and temporal analysis
     df = df.reset_index().sort_values(by=['Time', 'Laptrigger_lapdist_dls'], ascending=False)
     
-    # 1. Prepare for adjacency checks
-    df['Time_Group'] = df['Time'].astype(str)
-    df['Current_Position'] = df.groupby('Time_Group')['Laptrigger_lapdist_dls'].rank(method='first', ascending=False).astype(int)
+    all_confirmed_events = []
     
-    df['Prev_Position'] = df.groupby('Vehicle_ID')['Current_Position'].shift(1)
-    df['Prev_LapDist'] = df.groupby('Vehicle_ID')['Laptrigger_lapdist_dls'].shift(1)
-    
-    # Identify moments where position was gained
-    position_gained = (df['Current_Position'] < df['Prev_Position'])
-    
-    # Identify moments where position was lost
-    position_lost = (df['Current_Position'] > df['Prev_Position'])
-    
-    # Calculate difference in position rank change over time for adjacency (O(n^2) optimization is assumed)
-    
-    events_by_race = {}
-    
-    # Simplification: Find sustained position changes within Critical Sectors
-    
+    # Process each race separately
     for (track, race), group in df.groupby(['Track', 'Race_Number']):
         confirmed_events_race = []
         
-        # Check for confirmed events only in CRITICAL_SECTORs
-        critical_events = group[
-            (group['Sector_ID'].str.startswith('S_')) & 
-            (group['Current_Position'] != group['Prev_Position'])
-        ].copy()
+        # Estimate track length from max lap distance (handles lap rollover)
+        # Track length is typically the maximum distance value seen
+        track_length = group['Laptrigger_lapdist_dls'].max()
+        if pd.isna(track_length) or track_length < 1000:  # Sanity check
+            track_length = 5000  # Default fallback (5km track)
         
-        if critical_events.empty:
+        # 1. Lap Distance Normalization: Normalize modulo track length to prevent false jumps at Start/Finish
+        # This handles cases where distance goes from 3999m to 5m (lap rollover)
+        group['LapDist_Normalized'] = group['Laptrigger_lapdist_dls'] % track_length
+        
+        # 2. Prepare for position tracking
+        group = group.sort_values(by='Time')
+        group['Time_Group'] = group['Time'].astype(str)
+        
+        # Calculate position based on normalized lap distance (further = better position)
+        group['Current_Position'] = group.groupby('Time_Group')['LapDist_Normalized'].rank(method='first', ascending=False).astype(int)
+        
+        # Track previous position and distance per vehicle
+        group['Prev_Position'] = group.groupby('Vehicle_ID')['Current_Position'].shift(1)
+        group['Prev_LapDist'] = group.groupby('Vehicle_ID')['LapDist_Normalized'].shift(1)
+        group['Delta_Dist'] = group['LapDist_Normalized'] - group['Prev_LapDist']
+        
+        # 3. Filter: Only check in Critical Sectors (where overtakes matter)
+        critical_sector_data = group[group['Sector_ID'].str.startswith('S_', na=False)].copy()
+        
+        if critical_sector_data.empty:
             continue
-            
-        # Group by contiguous events to check for persistence (>0.3s)
-        critical_events['Event_Start'] = (critical_events['Current_Position'] != critical_events['Prev_Position']).diff().ne(0).cumsum()
         
-        for event_id, event_group in critical_events.groupby('Event_Start'):
+        # 4. Identify potential position changes (position rank changed)
+        position_changed = critical_sector_data['Current_Position'] != critical_sector_data['Prev_Position']
+        potential_events = critical_sector_data[position_changed].copy()
+        
+        if potential_events.empty:
+            continue
+        
+        # 5. Hysteresis Filtering: Apply spatial buffer to avoid flagging random GPS oscillations
+        # Only flag if distance delta exceeds the hysteresis buffer
+        potential_events['Dist_Delta_Abs'] = potential_events['Delta_Dist'].abs()
+        potential_events = potential_events[potential_events['Dist_Delta_Abs'] > HYSTERESIS_BUFFER_METERS]
+        
+        if potential_events.empty:
+            continue
+        
+        # 6. Group contiguous position changes to check for persistence
+        potential_events = potential_events.sort_values(by='Time')
+        potential_events['Position_Change'] = (potential_events['Current_Position'] < potential_events['Prev_Position']).astype(int)
+        potential_events['Event_Group'] = (potential_events['Position_Change'].diff() != 0).cumsum()
+        
+        # 7. Check persistence: Position change must be maintained for >0.3 seconds
+        for event_group_id, event_group in potential_events.groupby('Event_Group'):
+            if len(event_group) < 2:  # Need at least 2 data points
+                continue
+                
             duration = (event_group['Time'].max() - event_group['Time'].min()).total_seconds()
             
             if duration >= PERSISTENCE_THRESHOLD_SECONDS:
-                # Confirmed Overtake (Position swap maintained)
-                # Find the winner (highest rank at the end) and loser
-                winner = event_group.sort_values(by='Current_Position').iloc[0]
-                loser = event_group.sort_values(by='Current_Position').iloc[-1]
+                # Confirmed Overtake: Position swap maintained for sufficient time
+                # Winner is the car that gained position (lower position number = better)
+                event_group_sorted = event_group.sort_values(by='Current_Position')
+                winner = event_group_sorted.iloc[0]  # Best position (lowest number)
+                loser = event_group_sorted.iloc[-1]   # Worst position (highest number)
                 
-                # Further checks for Hysteresis and Lap Normalization are skipped for brevity
+                # Calculate lap number from distance (approximate)
+                lap_number = int(winner['Laptrigger_lapdist_dls'] // track_length) + 1
                 
                 event = {
                     "Timestamp": winner['Time'].strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
-                    "Winner_ID": winner['Vehicle_ID'],
-                    "Loser_ID": loser['Vehicle_ID'],
+                    "Winner_ID": str(winner['Vehicle_ID']),
+                    "Loser_ID": str(loser['Vehicle_ID']),
                     "Sector_ID": winner['Sector_ID'],
                     "Track": track,
                     "Race_Number": race,
-                    "Lap_Number": winner['Laptrigger_lapdist_dls'] // 1000, 
+                    "Lap_Number": lap_number,
                 }
                 
                 # Generate Critical_Event_ID following collision-proof schema
-                event['Critical_Event_ID'] = f"{event['Sector_ID']}_L{int(event['Lap_Number'])}_WIN{event['Winner_ID']}_LOS{event['Loser_ID']}"
+                event['Critical_Event_ID'] = f"{event['Sector_ID']}_L{event['Lap_Number']}_WIN{event['Winner_ID']}_LOS{event['Loser_ID']}"
                 
+                # Avoid duplicates
                 if event['Critical_Event_ID'] not in [e['Critical_Event_ID'] for e in confirmed_events_race]:
-                     confirmed_events_race.append(event)
+                    confirmed_events_race.append(event)
         
         # Save batched JSON file for the race
         if confirmed_events_race:
