@@ -31,6 +31,7 @@ export type TelemetryStore = {
     trackTempC: number | null;
     humidityPercent: number | null;
   } | null;
+  isPlaying: boolean;
   updateCar: (carNumber: string, updates: Partial<CarState>) => void;
   setStandings: (standings: Standing[]) => void;
   setRaceMeta: (payload: {
@@ -39,6 +40,7 @@ export type TelemetryStore = {
     gap?: string | null;
   }) => void;
   setWeather: (payload: TelemetryStore["latestWeather"]) => void;
+  setIsPlaying: (playing: boolean) => void;
   reset: () => void;
 };
 
@@ -50,10 +52,12 @@ const initialState: TelemetryStore = {
   cars: {},
   standings: [],
   latestWeather: null,
+  isPlaying: false,
   updateCar: () => {},
   setStandings: () => {},
   setRaceMeta: () => {},
   setWeather: () => {},
+  setIsPlaying: () => {},
   reset: () => {},
 };
 
@@ -95,6 +99,11 @@ export const useTelemetry = create<TelemetryStore>((set) => ({
     set((state) => ({
       ...state,
       latestWeather: payload,
+    })),
+  setIsPlaying: (playing) =>
+    set((state) => ({
+      ...state,
+      isPlaying: playing,
     })),
   reset: () => set(() => ({ ...initialState })),
 }));

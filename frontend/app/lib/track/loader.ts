@@ -113,6 +113,12 @@ const loadCsvRows = async (
       cacheKey,
       (async () => {
         const absolutePath = resolveDataPath(dataset.path);
+        try {
+          await fs.access(absolutePath);
+        } catch {
+          console.warn(`Data file not found: ${absolutePath}`);
+          return [];
+        }
         const fileBuffer = await fs.readFile(absolutePath, "utf-8");
         const firstLine = fileBuffer.slice(0, fileBuffer.indexOf("\n"));
         const delimiter = detectDelimiter(firstLine);
@@ -347,14 +353,19 @@ export const loadTrackData = async (
             if (entry.target === "telemetryFrames") {
               return;
             }
-            const rows = await loadCsvRows(entry);
-            const parser = datasetParsers[entry.target];
-            if (!parser) {
-              return;
+            try {
+              const rows = await loadCsvRows(entry);
+              const parser = datasetParsers[entry.target];
+              if (!parser) {
+                return;
+              }
+              (schema[entry.target] as unknown[]).push(
+                ...parser(rows, session),
+              );
+            } catch (error) {
+              console.warn(`Failed to load dataset ${entry.id}:`, error);
+              // Continue with other datasets
             }
-            (schema[entry.target] as unknown[]).push(
-              ...parser(rows, session),
-            );
           }),
         );
 
@@ -374,9 +385,16 @@ export async function* streamTelemetryFrames(
       entry.target === "telemetryFrames" && entry.sessionScope === session,
   );
   if (!dataset) {
+    console.warn(`No telemetry dataset found for session: ${session}`);
     return;
   }
   const absolutePath = resolveDataPath(dataset.path);
+  try {
+    await fs.access(absolutePath);
+  } catch {
+    console.warn(`Telemetry file not found: ${absolutePath}`);
+    return;
+  }
   const stream = createReadStream(absolutePath, { encoding: "utf-8" });
   const rl = readline.createInterface({
     input: stream,

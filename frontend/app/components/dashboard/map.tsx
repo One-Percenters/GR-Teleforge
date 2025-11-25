@@ -1,18 +1,34 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  GeoJSON,
-  MapContainer,
-  Marker,
-  TileLayer,
-  useMap,
-} from "react-leaflet";
-// @ts-ignore - Leaflet types not available
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 
 import { useTelemetry } from "./hooks";
+
+// Only import Leaflet on client side
+let GeoJSON: any;
+let MapContainer: any;
+let TileLayer: any;
+let useMap: any;
+let L: any;
+
+if (typeof window !== "undefined") {
+  const leaflet = require("react-leaflet");
+  GeoJSON = leaflet.GeoJSON;
+  MapContainer = leaflet.MapContainer;
+  TileLayer = leaflet.TileLayer;
+  useMap = leaflet.useMap;
+  
+  L = require("leaflet");
+  require("leaflet/dist/leaflet.css");
+  
+  // Fix Leaflet default icon paths
+  delete (L.Icon.Default.prototype as any)._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+    iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+    shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  });
+}
 
 type TrackFeatureCollection = {
   type: "FeatureCollection";
@@ -24,6 +40,8 @@ const ZOOM_MAX = 20;
 const MAP_CENTER = [33.5326, -86.6194] as const;
 
 const ZoomSync = ({ zoom }: { zoom: number }) => {
+  if (typeof window === "undefined" || !useMap) return null;
+  
   const map = useMap();
 
   useEffect(() => {
@@ -57,6 +75,11 @@ const CarMarkersLayer = ({
   const markersRef = useRef<Record<string, any>>({});
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    
+    // @ts-ignore - Leaflet types not available
+    const L = require("leaflet");
+    
     markers.forEach((marker) => {
       let leafletMarker = markersRef.current[marker.carNumber];
 
@@ -123,9 +146,16 @@ export default function Map() {
   const [track, setTrack] = useState<TrackFeatureCollection | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [zoom, setZoom] = useState(16);
+  const [isClient, setIsClient] = useState(false);
   const telemetry = useTelemetry();
 
   useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient) return;
+    
     let isMounted = true;
 
     fetchTrack()
@@ -143,11 +173,19 @@ export default function Map() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isClient]);
 
   const carMarkers = useMemo(() => {
     return Object.values(telemetry.cars)
-      .filter((car) => car.vboxLat != null && car.vboxLon != null)
+      .filter(
+        (car) =>
+          car.vboxLat != null &&
+          car.vboxLon != null &&
+          !Number.isNaN(car.vboxLat) &&
+          !Number.isNaN(car.vboxLon) &&
+          typeof car.vboxLat === "number" &&
+          typeof car.vboxLon === "number"
+      )
       .map((car) => ({
         carNumber: car.carNumber,
         position: [car.vboxLat as number, car.vboxLon as number] as [
@@ -157,6 +195,14 @@ export default function Map() {
         angle: car.steeringAngle ?? 0,
       }));
   }, [telemetry.cars]);
+
+  if (!isClient || !MapContainer || !TileLayer || !GeoJSON) {
+    return (
+      <div className="flex h-full min-h-112 w-full items-center justify-center rounded-3xl border border-border bg-card text-muted-foreground">
+        Loading map…
+      </div>
+    );
+  }
 
   if (error) {
     return (
@@ -206,6 +252,13 @@ export default function Map() {
           <GeoJSON data={track} />
           <CarMarkersLayer markers={carMarkers} />
         </MapContainer>
+        {carMarkers.length === 0 && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <p className="rounded-full bg-background/80 px-4 py-2 text-sm text-muted-foreground">
+              No cars on track
+            </p>
+          </div>
+        )}
         <div className="pointer-events-none absolute inset-4 rounded-3xl border border-white/5" />
       </div>
     </div>

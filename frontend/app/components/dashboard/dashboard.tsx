@@ -1,8 +1,16 @@
 "use client";
 
 import type { ReactNode } from "react";
+import dynamic from "next/dynamic";
 
-import Map from "./map";
+const Map = dynamic(() => import("./map"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full min-h-112 w-full items-center justify-center rounded-3xl border border-border bg-card text-muted-foreground">
+      Loading map…
+    </div>
+  ),
+});
 import {
   type CarState,
   type Standing,
@@ -254,7 +262,13 @@ const LapTimelineCard = ({
   );
 };
 
-const PlaybackControls = ({ status }: { status: string | null }) => (
+const PlaybackControls = ({
+  isPlaying,
+  onTogglePlay,
+}: {
+  isPlaying: boolean;
+  onTogglePlay: () => void;
+}) => (
   <section className="flex justify-center">
     <div className="flex items-center gap-4 rounded-full border border-border bg-card px-6 py-3 text-sm text-muted-foreground shadow-lg shadow-black/40">
       <IconButton label="previous lap">
@@ -265,13 +279,23 @@ const PlaybackControls = ({ status }: { status: string | null }) => (
       </IconButton>
       <button
         type="button"
+        onClick={onTogglePlay}
         className="flex items-center gap-2 rounded-full bg-primary px-5 py-2 font-semibold text-primary-foreground transition hover:bg-accent"
       >
-        <span className="inline-flex h-2 w-2 rounded-full bg-primary-foreground" />
-        Play
+        {isPlaying ? (
+          <>
+            <PauseIcon />
+            Pause
+          </>
+        ) : (
+          <>
+            <span className="inline-flex h-2 w-2 rounded-full bg-primary-foreground" />
+            Play
+          </>
+        )}
       </button>
       <span className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
-        {status ?? "paused"}
+        {isPlaying ? "playing" : "paused"}
       </span>
     </div>
   </section>
@@ -307,14 +331,25 @@ const NextIcon = () => (
   </svg>
 );
 
+const PauseIcon = () => (
+  <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden="true">
+    <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+  </svg>
+);
+
 const Dashboard = () => {
-  usePlaybackClient("race1");
   const telemetry = useTelemetry();
+  usePlaybackClient("race1", telemetry.isPlaying);
+
   const activeCarNumber =
     telemetry.standings[0]?.car ?? Object.keys(telemetry.cars)[0] ?? null;
   const activeCar = activeCarNumber
     ? telemetry.cars[activeCarNumber] ?? null
     : null;
+
+  const handleTogglePlay = () => {
+    telemetry.setIsPlaying(!telemetry.isPlaying);
+  };
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -329,7 +364,10 @@ const Dashboard = () => {
 
         <LapTimelineCard telemetry={telemetry} activeCar={activeCar} />
 
-        <PlaybackControls status={telemetry.raceStatus} />
+        <PlaybackControls
+          isPlaying={telemetry.isPlaying}
+          onTogglePlay={handleTogglePlay}
+        />
       </div>
     </main>
   );
