@@ -25,14 +25,14 @@ export default function RacePage() {
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [leftPanelOpen, setLeftPanelOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(true); // Default open for weather
-  
+
   // Playback state
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [currentTime, setCurrentTime] = useState(0);
   const [currentLap, setCurrentLap] = useState(1);
   const [activeEvents, setActiveEvents] = useState<ProcessedEvent[]>([]);
-  
+
   // Zoom and tilt
   const [zoom, setZoom] = useState(1);
   const [tilt, setTilt] = useState(0);
@@ -74,7 +74,11 @@ export default function RacePage() {
     setRightPanelOpen(true);
   }, []);
 
-  const handleDriverClick = useCallback((driverId: string) => {
+  const handleDriverClick = useCallback((driverId: string | null) => {
+    if (!driverId) {
+      setSelectedDriver(null);
+      return;
+    }
     setSelectedDriver(prev => prev === driverId ? null : driverId);
   }, []);
 
@@ -193,7 +197,7 @@ export default function RacePage() {
   const progress = (currentTime / RACE_DURATION) * 100;
 
   return (
-    <div 
+    <div
       className="min-h-screen bg-[#080808] overflow-hidden select-none"
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -201,9 +205,9 @@ export default function RacePage() {
       onMouseLeave={handleMouseUp}
     >
       {/* Full screen canvas with zoom/tilt */}
-      <div 
+      <div
         className="fixed inset-0 transition-transform duration-200"
-        style={{ 
+        style={{
           transform: `scale(${zoom}) perspective(1000px) rotateX(${tilt}deg)`,
           transformOrigin: 'center center'
         }}
@@ -246,16 +250,18 @@ export default function RacePage() {
         {tilt !== 0 && <div className="text-[10px] text-zinc-500 text-center">{tilt.toFixed(0)}°</div>}
       </div>
 
-      {/* Left Panel Toggle */}
+      {/* Left Panel Toggle - always visible, moves with panel */}
       <button
         onClick={() => setLeftPanelOpen(prev => !prev)}
-        className="fixed left-0 top-1/2 -translate-y-1/2 z-50 w-6 h-20 bg-zinc-900/80 hover:bg-zinc-800 border-r border-zinc-700 rounded-r flex items-center justify-center text-zinc-400 hover:text-white"
+        className={`fixed top-1/2 -translate-y-1/2 z-50 w-6 h-20 bg-zinc-900/80 hover:bg-zinc-800 border-r border-zinc-700 rounded-r flex items-center justify-center text-zinc-400 hover:text-white transition-all ${
+          leftPanelOpen ? 'left-[340px]' : 'left-0'
+        }`}
       >
         {leftPanelOpen ? '‹' : '›'}
       </button>
 
       {/* Left Panel */}
-      <div 
+      <div
         className={`fixed left-0 top-0 h-full z-40 transition-transform duration-300 ${leftPanelOpen ? 'translate-x-0' : '-translate-x-full'}`}
         style={{ width: 340 }}
       >
@@ -284,7 +290,7 @@ export default function RacePage() {
       </button>
 
       {/* Right Panel */}
-      <div 
+      <div
         className={`fixed right-0 top-0 h-full z-40 transition-transform duration-300 ${rightPanelOpen ? 'translate-x-0' : 'translate-x-full'}`}
         style={{ width: 360 }}
       >
@@ -306,7 +312,7 @@ export default function RacePage() {
         <div className="flex items-center gap-3 bg-[#0a0a0a]/90 backdrop-blur-sm px-5 py-3 rounded-full border border-zinc-800">
           {/* Lap Selector */}
           <div className="flex items-center gap-1 pr-3 border-r border-zinc-700">
-            <button 
+            <button
               onClick={() => currentLap > 1 && seekToLap(currentLap - 1)}
               className="w-6 h-6 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 text-xs"
               disabled={currentLap <= 1}
@@ -317,7 +323,7 @@ export default function RacePage() {
               <span className="text-[9px] text-zinc-500 uppercase block">Lap</span>
               <span className="text-lg font-bold text-white">{currentLap}<span className="text-zinc-600 text-sm">/{TOTAL_LAPS}</span></span>
             </div>
-            <button 
+            <button
               onClick={() => currentLap < TOTAL_LAPS && seekToLap(currentLap + 1)}
               className="w-6 h-6 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 text-xs"
               disabled={currentLap >= TOTAL_LAPS}
@@ -333,7 +339,7 @@ export default function RacePage() {
           </span>
 
           {/* Play/Pause */}
-          <button 
+          <button
             onClick={togglePlayback}
             className="w-11 h-11 rounded-full bg-[#D71921] hover:bg-[#ff2a35] flex items-center justify-center transition-all"
           >
@@ -350,7 +356,7 @@ export default function RacePage() {
           </button>
 
           {/* Progress bar */}
-          <div 
+          <div
             className="w-40 h-1.5 bg-zinc-800 rounded-full overflow-hidden cursor-pointer"
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
@@ -370,9 +376,8 @@ export default function RacePage() {
               <button
                 key={speed}
                 onClick={() => setPlaybackSpeed(speed)}
-                className={`px-2 py-1 text-xs rounded transition-all ${
-                  playbackSpeed === speed ? 'bg-[#D71921] text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-                }`}
+                className={`px-2 py-1 text-xs rounded transition-all ${playbackSpeed === speed ? 'bg-[#D71921] text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                  }`}
               >
                 {speed}x
               </button>

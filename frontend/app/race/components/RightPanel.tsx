@@ -105,17 +105,17 @@ export function RightPanel({
               )}
             </div>
 
-            {/* Overtake Details */}
+            {/* Event Details */}
             <div className="mb-4">
               <h3 className="text-[10px] text-zinc-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                <span className="w-2 h-2 bg-red-500 rounded-full" />
-                Overtake Details
+                <span className={`w-2 h-2 ${event.Critical_Event_ID?.startsWith('leader_change') ? 'bg-yellow-500' : 'bg-red-500'} rounded-full`} />
+                {event.Critical_Event_ID?.startsWith('leader_change') ? 'Leader Change' : 'Overtake Details'}
               </h3>
 
-              {/* Winner */}
-              <div className="bg-green-900/20 border border-green-500/30 rounded-xl p-4 mb-3">
-                <p className="text-[10px] text-green-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-                  <span className="text-green-500">▲</span> Winner
+              {/* Winner / New Leader */}
+              <div className={`${event.Critical_Event_ID?.startsWith('leader_change') ? 'bg-yellow-900/20 border-yellow-500/30' : 'bg-green-900/20 border-green-500/30'} border rounded-xl p-4 mb-3`}>
+                <p className={`text-[10px] ${event.Critical_Event_ID?.startsWith('leader_change') ? 'text-yellow-400' : 'text-green-400'} uppercase tracking-wider mb-2 flex items-center gap-2`}>
+                  <span className={event.Critical_Event_ID?.startsWith('leader_change') ? 'text-yellow-500' : 'text-green-500'}>▲</span> {event.Critical_Event_ID?.startsWith('leader_change') ? 'New Leader' : 'Winner'}
                 </p>
                 <div className="flex items-center gap-3">
                   <div 
@@ -131,10 +131,10 @@ export function RightPanel({
                 </div>
               </div>
 
-              {/* Loser */}
+              {/* Loser / Previous Leader */}
               <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-4">
                 <p className="text-[10px] text-red-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-                  <span className="text-red-500">▼</span> Overtaken
+                  <span className="text-red-500">▼</span> {event.Critical_Event_ID?.startsWith('leader_change') ? 'Previous Leader' : 'Overtaken'}
                 </p>
                 <div className="flex items-center gap-3">
                   <div 

@@ -9,6 +9,7 @@ export interface TrackBounds {
 
 export interface TrackData {
   path: [number, number][]; // [long, lat]
+  startLine?: [number, number];
   bounds: TrackBounds;
 }
 

@@ -31,7 +31,7 @@ export default function Home() {
                 Try Now
               </button>
             </Link>
-            <a href="https://devpost.com" target="_blank" rel="noopener noreferrer">
+            <a href="https://devpost.com/software/gazoo-tracking" target="_blank" rel="noopener noreferrer">
               <button className="px-10 py-4 bg-transparent text-white font-black text-lg uppercase tracking-wider border-2 border-zinc-600 hover:border-white hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:scale-105 transition-all duration-200">
                 Learn More
               </button>

@@ -102,7 +102,9 @@ export function useRaceData(
   const raceDuration = useMemo(() => {
     if (processedEvents.length === 0) return 60000; // Default 1 minute
     const maxTime = Math.max(...processedEvents.map(e => e.timeMs));
-    return Math.max(maxTime + 10000, 60000); // At least 1 minute, plus 10s buffer
+    const duration = Math.max(maxTime + 10000, 60000); // At least 1 minute, plus 10s buffer
+    console.log('Race Duration:', duration, 'Events:', processedEvents.length);
+    return duration;
   }, [processedEvents]);
 
   return {
