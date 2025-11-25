@@ -23,6 +23,7 @@ export interface RaceEvent {
   Lap_Number: number;
   Critical_Event_ID: string;
   Reason_Code: string | null;
+  Reason_Value?: number | null;
 }
 
 export interface TracksGPS {

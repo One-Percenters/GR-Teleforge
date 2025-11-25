@@ -23,7 +23,7 @@ export function RoadView({
   getDriverColor
 }: RoadViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | undefined>(undefined);
 
   // Calculate driver positions
   const driverPositions = useMemo(() => {

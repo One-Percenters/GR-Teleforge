@@ -86,7 +86,7 @@ export function LeftPanel({
             </div>
             <div className="bg-zinc-900/40 rounded p-2">
               <p className="text-[9px] text-zinc-500">Rain</p>
-              <p className="text-blue-400 font-semibold">{weather.rainChance}%</p>
+              <p className="text-blue-400 font-semibold">{weather.precipitation}%</p>
             </div>
           </div>
         </div>

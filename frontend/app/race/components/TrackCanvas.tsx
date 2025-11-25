@@ -362,13 +362,16 @@ export function TrackCanvas({
       const oldLeaderIdx = drivers.indexOf(lastLeaderRef.current);
       const newLeaderIdx = drivers.indexOf(currentLeader);
       
-      if (oldLeaderIdx >= 0 && newLeaderIdx >= 0) {
+      if (oldLeaderIdx >= 0 && newLeaderIdx >= 0 && events.length > 0) {
+        const firstEvent = events[0];
         const leaderChangeEvent: ProcessedEvent = {
           Critical_Event_ID: `leader_change_${currentTime}`,
           Timestamp: new Date(Date.now()).toISOString(),
           Winner_ID: currentLeader,
           Loser_ID: lastLeaderRef.current,
           Sector_ID: `S_${Math.floor((currentTime / RACE_DURATION) * 50)}`,
+          Track: firstEvent.Track,
+          Race_Number: firstEvent.Race_Number,
           Lap_Number: currentLap,
           Reason_Code: 'Leader_Change',
           Reason_Value: 0,
