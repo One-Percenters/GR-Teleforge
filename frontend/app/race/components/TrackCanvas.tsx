@@ -302,81 +302,54 @@ export function TrackCanvas({
       ctx.restore();
     }
 
-    // Combine regular events with leader change events
-    const allEvents = [...events, ...Array.from(leaderChangeEventsRef.current.values())];
-    
-    // Events - only show when active (within +/- 5 seconds for regular, 10 for leader changes)
-    allEvents.slice(0, 50).forEach((event, idx) => {
-      const isLeaderChange = event.Critical_Event_ID?.startsWith('leader_change');
-      const timeWindow = isLeaderChange ? 10000 : 5000;
-      const timeDiff = Math.abs(event.timeMs - currentTime);
-      const isActive = timeDiff < timeWindow;
-      const isSelected = selectedEvent?.Critical_Event_ID === event.Critical_Event_ID;
-
-      if (!isActive && !isSelected) return;
-
-      const sectorNum = parseInt(event.Sector_ID.replace('S_', ''), 10) || idx;
-      const eventProgress = event.pathProgress !== undefined ? event.pathProgress : (sectorNum % 50) / 50;
-      const pos = getTrackPosition(eventProgress);
-
-      if (isPlaying && isActive && !triggeredEventsRef.current.has(event.Critical_Event_ID)) {
-        triggeredEventsRef.current.add(event.Critical_Event_ID);
-        onEventTrigger(event);
-      }
-
-      const eventColor = isLeaderChange ? '#fbbf24' : '#ef4444';
-      const pulseBase = isLeaderChange ? 25 : 20;
-      const pulseVariation = isLeaderChange ? 8 : 5;
-
-      // Pulsing ring for active events
-      if (isActive) {
-        const pulseSize = (pulseBase + Math.sin(now / (isLeaderChange ? 100 : 150)) * pulseVariation) * zoom;
-        ctx.beginPath();
-        ctx.arc(pos.x, pos.y, pulseSize, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(${isLeaderChange ? '251, 191, 36' : '239, 68, 68'}, ${0.6 - (timeDiff / timeWindow) * 0.4})`;
-        ctx.lineWidth = 3 * zoom;
-        if (isLeaderChange) {
-          ctx.shadowColor = '#fbbf24';
-          ctx.shadowBlur = 10 * zoom;
-        }
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-      }
-
-      // Event marker
-      ctx.beginPath();
-      const markerSize = (isSelected ? 12 : isActive ? 8 : 6) * zoom;
-      ctx.arc(pos.x, pos.y, markerSize, 0, Math.PI * 2);
-      ctx.fillStyle = isSelected ? '#fff' : isActive ? eventColor : `rgba(${isLeaderChange ? '251, 191, 36' : '239, 68, 68'}, 0.4)`;
-      ctx.fill();
-
-      if (isSelected) {
-        ctx.strokeStyle = eventColor;
-        ctx.lineWidth = 3 * zoom;
-        ctx.stroke();
-      }
-
-      // Leader change label
-      if (isLeaderChange && (isActive || isSelected)) {
-        ctx.fillStyle = '#fbbf24';
-        ctx.font = `bold ${9 * zoom}px Inter, system-ui, sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.shadowColor = '#000';
-        ctx.shadowBlur = 4;
-        ctx.fillText('LEADER', pos.x, pos.y - 25 * zoom);
-        ctx.shadowBlur = 0;
-      }
-    });
-
-    // Calculate driver positions and determine leader
+    // Calculate driver positions - smooth continuous movement from start line
     const driverPositions = drivers.map((driverId, idx) => {
-      let driverProgress = 0;
+      let driverProgress = 0; // All drivers start at start line (progress 0)
+      
+      // Only calculate position if time has progressed
       if (currentTime > 0) {
-        const speedFactor = 1 - (idx * 0.002);
-        const baseProgress = progress * speedFactor;
-        driverProgress = (baseProgress * 3) % 1;
+        // Base position calculation: continuous movement from start
+        // Each driver has slightly different speed to show realistic spread
+        const speedFactor = 1 - (idx * 0.0015); // Smaller spread for smoother movement
+        const baseProgress = (currentTime / RACE_DURATION) * speedFactor * TOTAL_LAPS;
+        
+        // Find the most recent event involving this driver to adjust position
+        const driverEvents = [...events, ...Array.from(leaderChangeEventsRef.current.values())]
+          .filter(e => e.Winner_ID === driverId || e.Loser_ID === driverId)
+          .filter(e => e.timeMs <= currentTime && e.timeMs > 0)
+          .sort((a, b) => b.timeMs - a.timeMs); // Most recent first
+        
+        if (driverEvents.length > 0) {
+          // Use the position from the most recent event as a reference point
+          const latestEvent = driverEvents[0];
+          const eventProgress = latestEvent.pathProgress !== undefined 
+            ? latestEvent.pathProgress 
+            : (parseInt(latestEvent.Sector_ID.replace('S_', ''), 10) % 50) / 50;
+          
+          // Calculate time-based progress from the event
+          const timeSinceEvent = Math.max(0, currentTime - latestEvent.timeMs);
+          const trackLength = 1.0;
+          const avgLapTime = RACE_DURATION / TOTAL_LAPS;
+          const progressPerMs = trackLength / avgLapTime;
+          const eventBasedProgress = eventProgress + timeSinceEvent * progressPerMs;
+          
+          // Blend between base progress and event-based progress for smoothness
+          // Use event-based progress if it's close to base, otherwise use base
+          const progressDiff = Math.abs(eventBasedProgress - baseProgress);
+          if (progressDiff < 0.2) {
+            // Event is close to expected position, use it
+            driverProgress = eventBasedProgress % 1;
+          } else {
+            // Use base progress for smooth continuous movement
+            driverProgress = baseProgress % 1;
+          }
+        } else {
+          // No events yet, use smooth time-based progress
+          driverProgress = baseProgress % 1;
+        }
       }
+      // If currentTime is 0, driverProgress remains 0 (start line)
+      
       return { driverId, progress: driverProgress, index: idx };
     });
 
@@ -474,6 +447,71 @@ export function TrackCanvas({
       ctx.globalAlpha = 1;
     });
 
+    // Render events AFTER drivers so they appear on top
+    const allEvents = [...events, ...Array.from(leaderChangeEventsRef.current.values())];
+    
+    allEvents.slice(0, 50).forEach((event, idx) => {
+      const isLeaderChange = event.Critical_Event_ID?.startsWith('leader_change');
+      const timeWindow = isLeaderChange ? 10000 : 5000;
+      const timeDiff = Math.abs(event.timeMs - currentTime);
+      const isActive = timeDiff < timeWindow;
+      const isSelected = selectedEvent?.Critical_Event_ID === event.Critical_Event_ID;
+
+      if (!isActive && !isSelected) return;
+
+      const sectorNum = parseInt(event.Sector_ID.replace('S_', ''), 10) || idx;
+      const eventProgress = event.pathProgress !== undefined ? event.pathProgress : (sectorNum % 50) / 50;
+      const pos = getTrackPosition(eventProgress);
+
+      if (isPlaying && isActive && !triggeredEventsRef.current.has(event.Critical_Event_ID)) {
+        triggeredEventsRef.current.add(event.Critical_Event_ID);
+        onEventTrigger(event);
+      }
+
+      const eventColor = isLeaderChange ? '#fbbf24' : '#ef4444';
+      const pulseBase = isLeaderChange ? 25 : 20;
+      const pulseVariation = isLeaderChange ? 8 : 5;
+
+      // Pulsing ring for active events
+      if (isActive) {
+        const pulseSize = (pulseBase + Math.sin(now / (isLeaderChange ? 100 : 150)) * pulseVariation) * zoom;
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, pulseSize, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(${isLeaderChange ? '251, 191, 36' : '239, 68, 68'}, ${0.6 - (timeDiff / timeWindow) * 0.4})`;
+        ctx.lineWidth = 3 * zoom;
+        if (isLeaderChange) {
+          ctx.shadowColor = '#fbbf24';
+          ctx.shadowBlur = 10 * zoom;
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+
+      // Event marker
+      ctx.beginPath();
+      const markerSize = (isSelected ? 12 : isActive ? 8 : 6) * zoom;
+      ctx.arc(pos.x, pos.y, markerSize, 0, Math.PI * 2);
+      ctx.fillStyle = isSelected ? '#fff' : isActive ? eventColor : `rgba(${isLeaderChange ? '251, 191, 36' : '239, 68, 68'}, 0.4)`;
+      ctx.fill();
+
+      if (isSelected) {
+        ctx.strokeStyle = eventColor;
+        ctx.lineWidth = 3 * zoom;
+        ctx.stroke();
+      }
+
+      // Leader change label
+      if (isLeaderChange && (isActive || isSelected)) {
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = `bold ${9 * zoom}px Inter, system-ui, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = '#000';
+        ctx.shadowBlur = 4;
+        ctx.fillText('LEADER', pos.x, pos.y - 25 * zoom);
+        ctx.shadowBlur = 0;
+      }
+    });
 
     animationRef.current = requestAnimationFrame(render);
   }, [trackData, drivers, events, isPlaying, playbackSpeed, selectedDriver, selectedEvent,

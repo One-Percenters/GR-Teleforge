@@ -1,0 +1,151 @@
+{
+  "total_rows": 4798609,
+  "tracks": {
+    "Sonoma": {
+      "races": [
+        "R1",
+        "R2"
+      ],
+      "row_count": 733431,
+      "vehicles": 31
+    },
+    "COTA": {
+      "races": [
+        "R1",
+        "R2"
+      ],
+      "row_count": 785694,
+      "vehicles": 31
+    },
+    "Sebring": {
+      "races": [
+        "R1",
+        "R2"
+      ],
+      "row_count": 496236,
+      "vehicles": 21
+    },
+    "VIR": {
+      "races": [
+        "R1",
+        "R2"
+      ],
+      "row_count": 380523,
+      "vehicles": 21
+    },
+    "RoadAmerica": {
+      "races": [
+        "R1",
+        "R2"
+      ],
+      "row_count": 343249,
+      "vehicles": 27
+    },
+    "Barber": {
+      "races": [
+        "R1",
+        "R2"
+      ],
+      "row_count": 290433,
+      "vehicles": 20
+    },
+    "Indianapolis": {
+      "races": [
+        "R1",
+        "R2"
+      ],
+      "row_count": 1769043,
+      "vehicles": 26
+    }
+  },
+  "races": [
+    {
+      "track": "Sonoma",
+      "race": "R1",
+      "row_count": 485962,
+      "vehicles": 30
+    },
+    {
+      "track": "Sonoma",
+      "race": "R2",
+      "row_count": 247469,
+      "vehicles": 31
+    },
+    {
+      "track": "COTA",
+      "race": "R1",
+      "row_count": 405988,
+      "vehicles": 31
+    },
+    {
+      "track": "COTA",
+      "race": "R2",
+      "row_count": 379706,
+      "vehicles": 31
+    },
+    {
+      "track": "Sebring",
+      "race": "R1",
+      "row_count": 245430,
+      "vehicles": 21
+    },
+    {
+      "track": "Sebring",
+      "race": "R2",
+      "row_count": 250806,
+      "vehicles": 21
+    },
+    {
+      "track": "VIR",
+      "race": "R1",
+      "row_count": 193055,
+      "vehicles": 21
+    },
+    {
+      "track": "VIR",
+      "race": "R2",
+      "row_count": 187468,
+      "vehicles": 21
+    },
+    {
+      "track": "RoadAmerica",
+      "race": "R1",
+      "row_count": 147854,
+      "vehicles": 27
+    },
+    {
+      "track": "RoadAmerica",
+      "race": "R2",
+      "row_count": 195395,
+      "vehicles": 26
+    },
+    {
+      "track": "Barber",
+      "race": "R1",
+      "row_count": 135576,
+      "vehicles": 20
+    },
+    {
+      "track": "Barber",
+      "race": "R2",
+      "row_count": 154857,
+      "vehicles": 20
+    },
+    {
+      "track": "Indianapolis",
+      "race": "R1",
+      "row_count": 825147,
+      "vehicles": 25
+    },
+    {
+      "track": "Indianapolis",
+      "race": "R2",
+      "row_count": 943896,
+      "vehicles": 25
+    }
+  ],
+  "time_range": {
+    "start": "2025-03-29 21:00:47.050000+00:00",
+    "end": "2025-10-19 16:05:12.300000+00:00"
+  }
+}

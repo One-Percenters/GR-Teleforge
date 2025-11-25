@@ -25,6 +25,7 @@ export default function RacePage() {
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [leftPanelOpen, setLeftPanelOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(true); // Default open for weather
+  const firstOvertakeShownRef = useRef(false);
 
   // Playback state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -59,6 +60,7 @@ export default function RacePage() {
     setCurrentTime(0);
     setCurrentLap(1);
     setActiveEvents([]);
+    firstOvertakeShownRef.current = false;
   }, []);
 
   const handleRaceChange = useCallback((race: RaceNumber) => {
@@ -67,6 +69,7 @@ export default function RacePage() {
     setCurrentTime(0);
     setCurrentLap(1);
     setActiveEvents([]);
+    firstOvertakeShownRef.current = false;
   }, []);
 
   const handleEventClick = useCallback((event: ProcessedEvent) => {
@@ -98,6 +101,13 @@ export default function RacePage() {
       if (exists) return prev;
       return [event, ...prev].slice(0, 15);
     });
+    
+    // Auto-show first overtake (not leader change) in right panel
+    if (!firstOvertakeShownRef.current && !event.Critical_Event_ID?.startsWith('leader_change')) {
+      firstOvertakeShownRef.current = true;
+      setSelectedEvent(event);
+      setRightPanelOpen(true);
+    }
   }, []);
 
   const togglePlayback = useCallback(() => {
